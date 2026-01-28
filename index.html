@@ -55,6 +55,56 @@
             </div>
         </div>
 
+        <!-- Sezione Merge Video -->
+        <div class="merge-section">
+            <h2>🎬 Merge Video Multipli</h2>
+            <p class="merge-description">Unisci più file video in un unico file (es. primo tempo + secondo tempo)</p>
+            <div class="merge-controls">
+                <input type="file" id="mergeVideosInput" accept="video/*" multiple>
+                <button id="selectMergeVideosBtn">Seleziona Video da Unire</button>
+                <button id="exportMergeBtn" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">🔗 Genera Script Merge</button>
+            </div>
+            <div id="mergeVideosList" class="merge-videos-list">
+                <!-- Lista video da unire -->
+            </div>
+        </div>
+
+        <!-- Sezione Compressione Video -->
+        <div class="compress-section">
+            <h2>🗜️ Comprimi Video</h2>
+            <p class="compress-description">Riduci le dimensioni di un video mantenendo una buona qualità</p>
+            <div class="compress-controls">
+                <input type="file" id="compressVideoInput" accept="video/*">
+                <button id="selectCompressVideoBtn">Seleziona Video da Comprimere</button>
+                
+                <div class="compress-options">
+                    <label>
+                        <span>Qualità:</span>
+                        <select id="compressionQuality">
+                            <option value="high">Alta (CRF 20 - file più grande)</option>
+                            <option value="medium" selected>Media (CRF 23 - bilanciato)</option>
+                            <option value="low">Bassa (CRF 28 - file più piccolo)</option>
+                        </select>
+                    </label>
+                    
+                    <label>
+                        <span>Risoluzione:</span>
+                        <select id="compressionResolution">
+                            <option value="original" selected>Originale</option>
+                            <option value="1080">1080p (Full HD)</option>
+                            <option value="720">720p (HD)</option>
+                            <option value="480">480p (SD)</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <button id="exportCompressBtn" style="background: linear-gradient(135deg, #8e44ad, #9b59b6);">🗜️ Genera Script Compressione</button>
+            </div>
+            <div id="compressVideoInfo" class="compress-video-info">
+                <!-- Info video da comprimere -->
+            </div>
+        </div>
+
         <!-- Albero delle Azioni Taggate -->
         <div class="tagged-actions-section">
             <h2>Azioni Taggate</h2>

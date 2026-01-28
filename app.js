@@ -71,6 +71,34 @@ function setupEventListeners() {
         }
     });
     
+    // Merge Videos
+    document.getElementById('selectMergeVideosBtn').addEventListener('click', () => {
+        document.getElementById('mergeVideosInput').click();
+    });
+    document.getElementById('mergeVideosInput').addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectMergeVideos(e.target.files);
+        }
+    });
+    document.getElementById('exportMergeBtn').addEventListener('click', exportMergeScript);
+    
+    // Compress Video
+    document.getElementById('selectCompressVideoBtn').addEventListener('click', () => {
+        document.getElementById('compressVideoInput').click();
+    });
+    document.getElementById('compressVideoInput').addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectCompressVideo(e.target.files[0]);
+        }
+    });
+    document.getElementById('compressionQuality').addEventListener('change', () => {
+        if (compressState.videoToCompress) renderCompressVideoInfo();
+    });
+    document.getElementById('compressionResolution').addEventListener('change', () => {
+        if (compressState.videoToCompress) renderCompressVideoInfo();
+    });
+    document.getElementById('exportCompressBtn').addEventListener('click', exportCompressScript);
+    
     // Modal Controls
     setupModalControls();
 }

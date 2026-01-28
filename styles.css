@@ -235,6 +235,153 @@ video {
     margin-top: 10px;
 }
 
+/* Merge Section */
+.merge-section {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e8eaf6 100%);
+    margin: 0 20px 20px;
+    border-radius: 10px;
+    border: 2px solid #e74c3c;
+}
+
+/* Compress Section */
+.compress-section {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #f3e5f5 100%);
+    margin: 0 20px 20px;
+    border-radius: 10px;
+    border: 2px solid #9b59b6;
+}
+
+.merge-section h2 {
+    color: #e74c3c;
+    margin-bottom: 10px;
+}
+
+.merge-description,
+.compress-description {
+    color: #7f8c8d;
+    font-size: 0.95em;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.compress-section h2 {
+    color: #9b59b6;
+    margin-bottom: 10px;
+}
+
+.compress-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.compress-controls input[type="file"] {
+    display: none;
+}
+
+.compress-controls > button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s;
+    align-self: flex-start;
+}
+
+.compress-controls > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.compress-options {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.compress-options label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.compress-options label span {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9em;
+}
+
+.compress-options select {
+    padding: 10px;
+    border: 2px solid #bdc3c7;
+    border-radius: 5px;
+    font-size: 0.95em;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.compress-options select:hover {
+    border-color: #9b59b6;
+}
+
+.compress-options select:focus {
+    outline: none;
+    border-color: #8e44ad;
+}
+
+.compress-video-info {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    min-height: 60px;
+    border: 2px dashed #bdc3c7;
+}
+
+.merge-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.merge-controls input[type="file"] {
+    display: none;
+}
+
+.merge-controls button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.merge-controls button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.merge-videos-list {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    min-height: 80px;
+    border: 2px dashed #bdc3c7;
+}
+
 /* Tagged Actions Section */
 .tagged-actions-section {
     padding: 20px;
