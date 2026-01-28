@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Analysis - Analisi Video Calcio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚽ Match Analysis</h1>
+            <p>Analisi Video di Match Calcio</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Sezione Video Player -->
+            <div class="video-section">
+                <div class="video-controls-top">
+                    <input type="file" id="videoInput" accept="video/*" multiple>
+                    <button id="loadVideoBtn">Carica Video</button>
+                </div>
+                
+                <video id="videoPlayer" controls>
+                    Il tuo browser non supporta il video HTML5.
+                </video>
+                
+                <div class="video-info">
+                    <span id="currentTime">00:00:00</span>
+                    <span id="duration">00:00:00</span>
+                </div>
+            </div>
+
+            <!-- Sezione Tags -->
+            <div class="tags-section">
+                <div class="tag-panel">
+                    <h2>Pannello Tags</h2>
+                    <div class="tag-creation">
+                        <input type="text" id="newTagName" placeholder="Nome tag (es. Goal, Fallo, Corner...)">
+                        <input type="color" id="tagColor" value="#3498db">
+                        <button id="addTagBtn">Aggiungi Tag</button>
+                    </div>
+                    
+                    <div class="tag-list" id="tagList">
+                        <!-- Tags precaricati -->
+                    </div>
+                </div>
+
+                <div class="action-controls">
+                    <h3>Taglia Azione</h3>
+                    <button id="markStartBtn">Segna Inizio</button>
+                    <button id="markEndBtn">Segna Fine</button>
+                    <span id="selectedRange">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Albero delle Azioni Taggate -->
+        <div class="tagged-actions-section">
+            <h2>Azioni Taggate</h2>
+            <div class="actions-toolbar">
+                <button id="deleteSelectedBtn">Elimina Selezionati</button>
+                <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
+                <button id="exportJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta JSON</button>
+                <label for="importJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
+                    📂 Importa JSON
+                    <input type="file" id="importJSONInput" accept=".json" style="display: none;">
+                </label>
+            </div>
+            <div id="actionsList" class="actions-list">
+                <!-- Le azioni taggate appariranno qui -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="export.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

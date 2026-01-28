@@ -1,0 +1,9 @@
+Questa è una app per match analyst che permette di analizzare un video di un match di calcio.
+Deve essere una webapp
+
+Queste sono le features
+- Creazione pannello Tags con i nomi dei tag delle diverse azioni
+- Tag azioni da pannello
+- albero dei tag fatti, che possono essere selezionati e modificati (es posizione, durata)
+- possibilità di selezionare i tags per creare un video di sintesi
+- Possibilità di fare dei Merge di video  (es. MP4)
