@@ -21,19 +21,23 @@
         <div class="main-content">
             <!-- Sezione Tags -->
             <div class="tags-section">
-                <div class="tag-panel">
-                    <h2>Pannello Tags</h2>
+                <div class="tag-panel" style="padding: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h2 style="margin: 0;">Pannello Tags</h2>
+                        <div class="actions-toolbar" style="margin: 0; display: flex; gap: 5px;">
+                            <button id="exportTagsJSONBtn" title="Esporta Tag JSON" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; color: white;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            </button>
+                            <label for="importTagsJSONInput" class="import-btn" title="Importa Tag JSON" style="background: linear-gradient(135deg, #16a085, #138d75); border-radius: 4px; color: white; padding: 4px 8px; cursor: pointer; display: flex; align-items: center;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <input type="file" id="importTagsJSONInput" accept=".json" style="display: none;">
+                            </label>
+                        </div>
+                    </div>
                     <div class="tag-creation">
                         <input type="text" id="newTagName" placeholder="Nome tag...">
                         <input type="color" id="tagColor" value="#3498db">
                         <button id="addTagBtn">+</button>
-                    </div>
-                    <div class="actions-toolbar">
-                        <button id="exportTagsJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta Tag JSON</button>
-                        <label for="importTagsJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
-                            📂 Importa Tag JSON
-                            <input type="file" id="importTagsJSONInput" accept=".json" style="display: none;">
-                        </label>
                     </div>
                     
                     <div class="tag-list" id="tagList">
@@ -44,8 +48,15 @@
 
             <!-- Sezione Video Player -->
             <div class="video-section">
-                <div class="video-controls-top">
-                    <button id="loadVideoBtn">Carica Video</button>
+                <div class="video-controls-top" style="display: flex; gap: 8px; align-items: center;">
+                    <button id="loadVideoBtn" title="Carica Video" style="display: flex; align-items: center; gap: 5px; padding: 8px 15px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Carica Video
+                    </button>
+                    <button id="exportFFmpegBtn" title="Esporta Script FFmpeg" style="background: linear-gradient(135deg, #e67e22, #d35400); display: flex; align-items: center; gap: 5px; padding: 8px 15px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+                        Script FFmpeg
+                    </button>
                 </div>
                 
                 <video id="videoPlayer" controls>
@@ -77,25 +88,37 @@
 
             <!-- Albero delle Azioni Taggate -->
             <div class="tagged-actions-section">
-            <h2>Azioni Taggate</h2>
-            <div class="actions-toolbar">
-                <button id="selectAllBtn">✓ Seleziona Tutte</button>
-                <button id="deselectAllBtn">✗ Deseleziona Tutte</button>
-                <div class="filter-tags-container">
-                    <button id="toggleFilterBtn">🏷️ Filtra per Tag</button>
-                    <div id="filterTagsPanel" class="filter-tags-panel" style="display: none;">
-                        <!-- I checkbox per i tag appariranno qui -->
+                <div class="tagged-actions-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2 style="margin: 0;">Azioni Taggate</h2>
+                    <div class="actions-toolbar" style="margin: 0; display: flex; gap: 5px; flex-wrap: wrap;">
+                        <button id="collapseAllBtn" title="Compatta/Espandi Tutti" style="padding: 6px 10px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        </button>
+                        <button id="filterFlagBtn" onclick="toggleFlagFilterPanel()" title="Filtra per Flag" style="background: linear-gradient(135deg, #34495e, #2c3e50); padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </button>
+                        <button id="deleteSelectedBtn" title="Elimina Selezionati" style="background: linear-gradient(135deg, #e74c3c, #c0392b); padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                        <button id="exportActionsJSONBtn" title="Esporta Azioni JSON" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        </button>
+                        <label for="importActionsJSONInput" class="import-btn" title="Importa Azioni JSON" style="background: linear-gradient(135deg, #16a085, #138d75); border-radius: 5px; color: white; padding: 6px 10px; cursor: pointer; display: flex; align-items: center;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <input type="file" id="importActionsJSONInput" accept=".json" style="display: none;">
+                        </label>
                     </div>
                 </div>
-                <button id="collapseAllBtn">📄 Compatta Tutti</button>
-                <button id="deleteSelectedBtn">Elimina Selezionati</button>
-                <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
-                <button id="exportActionsJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta Azioni JSON</button>
-                <label for="importActionsJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
-                    📂 Importa Azioni JSON
-                    <input type="file" id="importActionsJSONInput" accept=".json" style="display: none;">
-                </label>
-            </div>
+                <div class="selection-tools" style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <button id="selectAllBtn" style="font-size: 0.75em; padding: 4px 8px;">✓ Seleziona Tutte</button>
+                    <button id="deselectAllBtn" style="font-size: 0.75em; padding: 4px 8px;">✗ Deseleziona Tutte</button>
+                    <div class="filter-tags-container" style="display: inline-block;">
+                        <button id="toggleFilterBtn" style="font-size: 0.75em; padding: 4px 8px;">🏷️ Filtra per Tag</button>
+                        <div id="filterTagsPanel" class="filter-tags-panel" style="display: none;">
+                            <!-- I checkbox per i tag appariranno qui -->
+                        </div>
+                    </div>
+                </div>
             <div id="actionsList" class="actions-list">
                 <!-- Le azioni taggate appariranno qui -->
             </div>

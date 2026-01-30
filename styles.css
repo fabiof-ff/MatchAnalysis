@@ -340,6 +340,7 @@ video {
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Garantisce lo scroll interno */
 }
 
 .tag-panel h2 {
@@ -846,7 +847,7 @@ video {
     border-radius: 6px;
     border-left: 3px solid #3498db;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     grid-template-rows: auto auto;
     gap: 6px;
     min-height: 60px;
@@ -905,9 +906,43 @@ video {
     flex-wrap: nowrap;
 }
 
-.action-info > * {
-    display: block;
+.action-flags {
+    grid-row: 1;
+    grid-column: 3;
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
+
+.action-flag-btn {
+    opacity: 0.2;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 4px;
+    padding: 4px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-flag-btn:hover {
+    opacity: 0.5;
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.action-flag-btn.active {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.action-flag-btn.active[title="Positivo"] {
+    filter: drop-shadow(0 0 3px rgba(39, 174, 96, 0.4));
+}
+
+.action-flag-btn.active[title="Negativo"] {
+    filter: drop-shadow(0 0 3px rgba(231, 76, 60, 0.4));
+}
+
+.action-flag-icon {
 
 .action-controls-btns {
     grid-row: 2;

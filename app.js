@@ -700,16 +700,28 @@ function createAction() {
 // Actions Rendering
 function renderActions() {
     const actionsList = document.getElementById('actionsList');
+    if (!actionsList) return;
     actionsList.innerHTML = '';
     
     // Filtra le azioni se ci sono filtri attivi
     let filteredActions = state.actions;
-    if (state.filterTags.size > 0) {
-        filteredActions = state.actions.filter(a => state.filterTags.has(a.tag.id));
+    
+    // Filtro per Tag
+    if (state.filterTags && state.filterTags.size > 0) {
+        filteredActions = filteredActions.filter(a => state.filterTags.has(a.tag.id));
+    }
+    
+    // Filtro per Flag (v/x)
+    if (state.filterFlag === 'positive') {
+        filteredActions = filteredActions.filter(a => a.positive);
+    } else if (state.filterFlag === 'negative') {
+        filteredActions = filteredActions.filter(a => a.negative);
     }
     
     if (filteredActions.length === 0) {
-        const message = state.filterTags.size > 0 ? 'Nessuna azione con questi tag' : 'Nessuna azione taggata';
+        const message = (state.filterTags && state.filterTags.size > 0) || state.filterFlag 
+            ? 'Nessuna azione trovata con i filtri attivi' 
+            : 'Nessuna azione taggata';
         actionsList.innerHTML = `<p style="text-align: center; color: #7f8c8d; padding: 20px;">${message}</p>`;
         return;
     }
@@ -951,6 +963,25 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 <div class="action-info">
                     <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
                     <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
+                </div>
+                <div class="action-flags">
+                    <button class="action-flag-btn ${action.positive ? 'active' : ''}" 
+                            title="Positivo" 
+                            style="color: #27ae60; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
+                            onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'positive')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="action-flag-btn ${action.negative ? 'active' : ''}" 
+                            title="Negativo" 
+                            style="color: #e74c3c; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
+                            onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'negative')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
                 <div class="action-controls-btns">
                     <button class="btn-play" onclick="playAction('${action.id}')">▶</button>
@@ -1458,6 +1489,51 @@ function deleteAction(actionId) {
         saveStateToLocalStorage();
     }
 }
+
+// Funzione globale per gestire i flag delle azioni
+window.toggleActionFlag = function(actionId, flagType) {
+    const action = state.actions.find(a => a.id === actionId);
+    if (!action) return;
+
+    if (flagType === 'positive') {
+        action.positive = !action.positive;
+        if (action.positive) action.negative = false;
+    } else if (flagType === 'negative') {
+        action.negative = !action.negative;
+        if (action.negative) action.positive = false;
+    }
+
+    saveStateToLocalStorage();
+    renderActions();
+};
+
+function toggleFlagFilterPanel() {
+    const filters = [null, 'positive', 'negative'];
+    const currentIndex = filters.indexOf(state.filterFlag);
+    const nextIndex = (currentIndex + 1) % filters.length;
+    state.filterFlag = filters[nextIndex];
+    
+    updateFlagFilterBtn();
+    renderActions();
+}
+
+function updateFlagFilterBtn() {
+    const btn = document.getElementById('filterFlagBtn');
+    if (!btn) return;
+    
+    if (state.filterFlag === 'positive') {
+        btn.innerHTML = '🔍 Flag: (v) OK';
+        btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+    } else if (state.filterFlag === 'negative') {
+        btn.innerHTML = '🔍 Flag: (x) KO';
+        btn.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+    } else {
+        btn.innerHTML = '🔍 Flag: Tutti';
+        btn.style.background = 'linear-gradient(135deg, #34495e, #2c3e50)';
+    }
+}
+
+window.toggleFlagFilterPanel = toggleFlagFilterPanel;
 
 function deleteSelectedActions() {
     if (state.selectedActions.size === 0) {

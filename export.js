@@ -34,7 +34,11 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
                         // Crea il file direttamente nella directory del video
                         const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
                         const writable = await fileHandle.createWritable();
-                        await writable.write(content);
+                        // Forza UTF-8 con BOM per compatibilità Windows (accenti e simboli)
+                        const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
+                            ? '\ufeff' + content 
+                            : content;
+                        await writable.write(encodedContent);
                         await writable.close();
                         showNotification(`✅ File salvato in: ${videoDirectoryHandle.name}\\${defaultFileName}`, 'success');
                         return true;
@@ -57,7 +61,10 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
                 // Salva il file nella directory selezionata
                 const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
                 const writable = await fileHandle.createWritable();
-                await writable.write(content);
+                const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
+                    ? '\ufeff' + content 
+                    : content;
+                await writable.write(encodedContent);
                 await writable.close();
                 showNotification(`✅ File salvato in: ${videoDirectoryHandle.name}\\${defaultFileName}`, 'success');
                 return true;
@@ -66,12 +73,18 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
             // Fallback: usa il dialogo normale
             const handle = await window.showSaveFilePicker(options);
             const writable = await handle.createWritable();
-            await writable.write(content);
+            const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
+                ? '\ufeff' + content 
+                : content;
+            await writable.write(encodedContent);
             await writable.close();
             return true;
         } else {
             // Fallback: download normale
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
+                ? '\ufeff' + content 
+                : content;
+            const blob = new Blob([encodedContent], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -390,9 +403,12 @@ async function exportActionsToFFmpeg() {
     }
     
     // Generate FFmpeg commands
-    const videoFileName = state.currentVideo ? state.currentVideo.name : 'VIDEO_NON_TROVATO.mp4';
+    const videoFileName = (state.currentVideo && state.currentVideo.name) 
+        ? state.currentVideo.name 
+        : 'VIDEO_NON_TROVATO.mp4';
     
     let ffmpegScript = `@echo off
+chcp 65001 > nul
 REM Script generato da Match Analysis
 REM Video di sintesi con ${selectedActionsList.length} clip
 
@@ -404,16 +420,16 @@ echo Questo script richiede FFmpeg installato sul PC
 echo Download: https://ffmpeg.org/download.html
 echo.
 
-set INPUT_VIDEO=${videoFileName}
-set OUTPUT_VIDEO=highlight_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4
+set "INPUT_VIDEO=${videoFileName}"
+set "OUTPUT_VIDEO=highlight_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4"
 
 REM Verifica che il file video esista
 if not exist "%INPUT_VIDEO%" (
     echo.
     echo ERRORE: File video non trovato!
     echo.
-    echo Cercato: %INPUT_VIDEO%
-    echo Cartella corrente: %CD%
+    echo Cercato: "%INPUT_VIDEO%"
+    echo Cartella corrente: "%CD%"
     echo.
     echo IMPORTANTE: Questo script deve essere nella STESSA CARTELLA del video!
     echo Copia il file video qui oppure sposta questo script nella cartella del video.
@@ -422,7 +438,7 @@ if not exist "%INPUT_VIDEO%" (
     exit /b 1
 )
 
-echo File input: %INPUT_VIDEO%
+echo File input: "%INPUT_VIDEO%"
 echo Estrazione di ${selectedActionsList.length} clip...
 echo.
 
@@ -430,23 +446,38 @@ echo.
 
     // Extract each segment
     selectedActionsList.forEach((action, i) => {
-        ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
+        // Funzione di utility per fare l'escape dei caratteri speciali per FFmpeg drawtext
+        const escapeFFmpegText = (text) => {
+            if (!text) return '';
+            return text
+                .replace(/\\/g, '\\\\')
+                .replace(/:/g, '\\:')
+                .replace(/'/g, "\\'")
+                .replace(/%/g, '%%');
+        };
+
+        // Prepara il testo da sovrapporre (Tag + Flag + Commento)
+        let overlayText = action.tag.name.toUpperCase();
+        let fontColor = "white";
+        
+        if (action.positive) {
+            overlayText = "(v) " + overlayText;
+            fontColor = "lime";
+        } else if (action.negative) {
+            overlayText = "(x) " + overlayText;
+            fontColor = "red";
+        }
+        
         if (action.comment && action.comment.trim()) {
-            ffmpegScript += `echo    Commento: ${action.comment.replace(/["|']/g, '')}\n`;
+            overlayText += " - " + action.comment;
         }
+
+        const safeOverlayText = escapeFFmpegText(overlayText);
+
+        ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
         
-        // Escape special characters for drawtext filter
-        const commentText = action.comment && action.comment.trim() 
-            ? action.comment.replace(/[:\\]/g, '\\$&').replace(/'/g, '').replace(/"/g, '') 
-            : '';
-        
-        if (commentText) {
-            // Extract with text overlay
-            ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -vf "drawtext=text='${commentText}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=(w-text_w)/2:y=h-th-30" -c:v libx264 -preset fast -crf 23 -c:a copy segment_${i}.mp4\n`;
-        } else {
-            // Extract without overlay (copy codec for speed)
-            ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -c copy -avoid_negative_ts 1 segment_${i}.mp4\n`;
-        }
+        // Estrazione con sovrapposizione testo
+        ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -vf "drawtext=text='${safeOverlayText}':fontcolor=${fontColor}:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=(w-text_w)/2:y=h-th-30" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "segment_${i}.mp4"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
@@ -466,7 +497,7 @@ echo.
     // Cleanup
     ffmpegScript += `echo.\necho Pulizia file temporanei...\n`;
     selectedActionsList.forEach((_, i) => {
-        ffmpegScript += `del segment_${i}.mp4\n`;
+        ffmpegScript += `del "segment_${i}.mp4"\n`;
     });
     ffmpegScript += `del concat_list.txt\n\n`;
     
