@@ -371,9 +371,19 @@ async function exportActionsToFFmpeg() {
         return;
     }
     
-    const selectedActionsList = state.actions
-        .filter(a => state.selectedActions.has(a.id))
-        .sort((a, b) => a.startTime - b.startTime);
+    // Usa l'ordinamento personalizzato se disponibile, altrimenti ordina per tempo
+    let selectedActionsList;
+    if (state.customOrder && state.customOrder.length > 0) {
+        // Usa l'ordinamento personalizzato
+        selectedActionsList = state.customOrder
+            .map(id => state.actions.find(a => a.id === id))
+            .filter(a => a && state.selectedActions.has(a.id));
+    } else {
+        // Ordinamento predefinito per tempo
+        selectedActionsList = state.actions
+            .filter(a => state.selectedActions.has(a.id))
+            .sort((a, b) => a.startTime - b.startTime);
+    }
     
     // Generate FFmpeg commands
     const videoFileName = state.currentVideo ? state.currentVideo.name : 'VIDEO_NON_TROVATO.mp4';

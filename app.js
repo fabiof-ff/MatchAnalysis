@@ -10,7 +10,8 @@ const state = {
     markedStart: null,
     markedEnd: null,
     selectedActions: new Set(),
-    filterTag: '' // Filtro per tag
+    filterTags: new Set(), // Filtro multiplo per tag
+    customOrder: [] // Ordinamento personalizzato delle azioni selezionate
 };
 
 // Initialize App
@@ -169,7 +170,8 @@ function setupActionsListeners() {
     // Actions Management - chiamata dopo che il template è stato inserito
     const selectAllBtn = document.getElementById('selectAllBtn');
     const deselectAllBtn = document.getElementById('deselectAllBtn');
-    const filterByTag = document.getElementById('filterByTag');
+    const toggleFilterBtn = document.getElementById('toggleFilterBtn');
+    const reorderSelectedBtn = document.getElementById('reorderSelectedBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
@@ -178,7 +180,8 @@ function setupActionsListeners() {
     console.log('Elementi trovati:', {
         selectAllBtn: !!selectAllBtn,
         deselectAllBtn: !!deselectAllBtn,
-        filterByTag: !!filterByTag,
+        toggleFilterBtn: !!toggleFilterBtn,
+        reorderSelectedBtn: !!reorderSelectedBtn,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
@@ -187,7 +190,8 @@ function setupActionsListeners() {
     
     if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllActions);
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
-    if (filterByTag) filterByTag.addEventListener('change', (e) => filterActionsByTag(e.target.value));
+    if (toggleFilterBtn) toggleFilterBtn.addEventListener('click', toggleFilterPanel);
+    if (reorderSelectedBtn) reorderSelectedBtn.addEventListener('click', openReorderModal);
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -621,24 +625,40 @@ function renderActions() {
     const actionsList = document.getElementById('actionsList');
     actionsList.innerHTML = '';
     
-    // Filtra le azioni se c'è un filtro attivo
+    // Filtra le azioni se ci sono filtri attivi
     let filteredActions = state.actions;
-    if (state.filterTag) {
-        filteredActions = state.actions.filter(a => a.tag.id === state.filterTag);
+    if (state.filterTags.size > 0) {
+        filteredActions = state.actions.filter(a => state.filterTags.has(a.tag.id));
     }
     
     if (filteredActions.length === 0) {
-        const message = state.filterTag ? 'Nessuna azione con questo tag' : 'Nessuna azione taggata';
+        const message = state.filterTags.size > 0 ? 'Nessuna azione con questi tag' : 'Nessuna azione taggata';
         actionsList.innerHTML = `<p style="text-align: center; color: #7f8c8d; padding: 20px;">${message}</p>`;
         return;
     }
     
-    // Sort actions by start time
-    const sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
+    // Usa l'ordinamento personalizzato se disponibile, altrimenti ordina per tempo
+    let sortedActions;
+    if (state.customOrder && state.customOrder.length > 0) {
+        // Usa l'ordinamento personalizzato
+        const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.startTime - b.startTime;
+        });
+    } else {
+        // Ordinamento predefinito per tempo
+        sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
+    }
     
     sortedActions.forEach(action => {
         const actionItem = document.createElement('div');
         actionItem.className = 'action-item';
+        actionItem.draggable = true;
+        actionItem.dataset.actionId = action.id;
+        
         if (state.selectedActions.has(action.id)) {
             actionItem.classList.add('selected-action');
         }
@@ -670,15 +690,247 @@ function renderActions() {
             </div>
         `;
         
+        // Drag and drop per riordinare
+        actionItem.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            actionItem.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', action.id);
+        });
+        
+        actionItem.addEventListener('dragend', (e) => {
+            actionItem.classList.remove('dragging');
+        });
+        
+        actionItem.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const draggingItem = document.querySelector('.action-item.dragging');
+            if (draggingItem && draggingItem !== actionItem) {
+                const rect = actionItem.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                if (e.clientY < midpoint) {
+                    actionsList.insertBefore(draggingItem, actionItem);
+                } else {
+                    actionsList.insertBefore(draggingItem, actionItem.nextSibling);
+                }
+            }
+        });
+        
+        actionItem.addEventListener('drop', (e) => {
+            e.preventDefault();
+            // Salva il nuovo ordine
+            saveActionsOrder();
+        });
+        
         actionsList.appendChild(actionItem);
     });
+}
+
+function saveActionsOrder() {
+    const actionsList = document.getElementById('actionsList');
+    const items = actionsList.querySelectorAll('.action-item[data-action-id]');
+    
+    // Crea un nuovo ordine personalizzato basato sulla posizione corrente
+    state.customOrder = Array.from(items).map(item => item.dataset.actionId);
+    
+    showNotification('✅ Ordine aggiornato! Verrà usato nell\'export.', 'success', 2000);
+}
+
+function toggleFilterPanel() {
+    const panel = document.getElementById('filterTagsPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+function populateTagFilter() {
+    const panel = document.getElementById('filterTagsPanel');
+    if (!panel) return;
+    
+    panel.innerHTML = '<div style="font-weight: 600; margin-bottom: 10px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Seleziona Tag:</div>';
+    
+    state.tags.forEach(tag => {
+        const item = document.createElement('div');
+        item.className = 'filter-tag-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `filter-${tag.id}`;
+        checkbox.checked = state.filterTags.has(tag.id);
+        checkbox.onchange = () => toggleTagFilter(tag.id);
+        
+        const label = document.createElement('label');
+        label.htmlFor = `filter-${tag.id}`;
+        label.textContent = tag.name;
+        label.style.color = tag.color;
+        
+        item.appendChild(checkbox);
+        item.appendChild(label);
+        panel.appendChild(item);
+    });
+}
+
+function toggleTagFilter(tagId) {
+    if (state.filterTags.has(tagId)) {
+        state.filterTags.delete(tagId);
+    } else {
+        state.filterTags.add(tagId);
+    }
+    renderActions();
+    
+    if (state.filterTags.size > 0) {
+        showNotification(`🏷️ Filtro attivo: ${state.filterTags.size} tag selezionati`, 'info');
+    }
+}
+
+function openReorderModal() {
+    if (state.selectedActions.size === 0) {
+        alert('Seleziona almeno un\'azione da riordinare');
+        return;
+    }
+    
+    // Crea una lista di azioni selezionate con il loro ordine attuale
+    const selectedActionsList = state.actions
+        .filter(a => state.selectedActions.has(a.id))
+        .sort((a, b) => a.startTime - b.startTime);
+    
+    // Salva l'ordine personalizzato
+    state.customOrder = selectedActionsList.map(a => a.id);
+    
+    // Crea un modale per riordinare
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+    `;
+    
+    content.innerHTML = `
+        <h2 style="margin-bottom: 20px;">🔀 Riordina Clip Selezionate</h2>
+        <p style="margin-bottom: 15px; color: #7f8c8d;">Trascina le clip per riordinarle come desideri nell'export:</p>
+        <div id="reorderList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeReorderModal()" style="padding: 10px 20px; border-radius: 5px; border: 2px solid #95a5a6; background: white; cursor: pointer;">Annulla</button>
+            <button onclick="saveCustomOrder()" style="padding: 10px 20px; border-radius: 5px; border: none; background: #27ae60; color: white; cursor: pointer; font-weight: 600;">Salva Ordine</button>
+        </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Popola la lista riordinabile
+    renderReorderList(selectedActionsList);
+    
+    // Chiudi cliccando fuori
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeReorderModal();
+        }
+    });
+}
+
+function renderReorderList(actions) {
+    const list = document.getElementById('reorderList');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    
+    actions.forEach((action, index) => {
+        const item = document.createElement('div');
+        item.draggable = true;
+        item.dataset.actionId = action.id;
+        item.style.cssText = `
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid ${action.tag.color};
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: move;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        `;
+        
+        item.innerHTML = `
+            <span style="font-weight: 600; color: #7f8c8d; min-width: 30px;">${index + 1}.</span>
+            <span style="font-weight: 600; color: ${action.tag.color};">${action.tag.name}</span>
+            <span style="color: #7f8c8d; font-family: monospace;">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</span>
+            ${action.comment ? `<span style="color: #95a5a6; font-style: italic;">"${action.comment}"</span>` : ''}
+        `;
+        
+        // Drag and drop
+        item.addEventListener('dragstart', (e) => {
+            item.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', action.id);
+        });
+        
+        item.addEventListener('dragend', () => {
+            item.style.opacity = '1';
+        });
+        
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const draggingItem = list.querySelector('[style*="opacity: 0.5"]');
+            if (draggingItem && draggingItem !== item) {
+                const rect = item.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                if (e.clientY < midpoint) {
+                    list.insertBefore(draggingItem, item);
+                } else {
+                    list.insertBefore(draggingItem, item.nextSibling);
+                }
+            }
+        });
+        
+        list.appendChild(item);
+    });
+}
+
+function closeReorderModal() {
+    const modal = document.querySelector('[style*="position: fixed"]');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function saveCustomOrder() {
+    const list = document.getElementById('reorderList');
+    if (!list) return;
+    
+    const items = list.querySelectorAll('[data-action-id]');
+    state.customOrder = Array.from(items).map(item => item.dataset.actionId);
+    
+    closeReorderModal();
+    showNotification('✅ Ordinamento personalizzato salvato! Verrà usato nell\'export.', 'success');
 }
 
 function selectAllActions() {
     // Seleziona tutte le azioni visibili (filtrate)
     let actionsToSelect = state.actions;
-    if (state.filterTag) {
-        actionsToSelect = state.actions.filter(a => a.tag.id === state.filterTag);
+    if (state.filterTags.size > 0) {
+        actionsToSelect = state.actions.filter(a => state.filterTags.has(a.tag.id));
     }
     
     actionsToSelect.forEach(action => {
@@ -705,23 +957,6 @@ function filterActionsByTag(tagId) {
             showNotification(`🏷️ Filtro attivo: ${tag.name}`, 'info');
         }
     }
-}
-
-function populateTagFilter() {
-    const filterByTag = document.getElementById('filterByTag');
-    if (!filterByTag) return;
-    
-    // Rimuovi tutte le opzioni tranne la prima
-    filterByTag.innerHTML = '<option value="">🏷️ Tutti i Tag</option>';
-    
-    // Aggiungi un'opzione per ogni tag
-    state.tags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag.id;
-        option.textContent = tag.name;
-        option.style.color = tag.color;
-        filterByTag.appendChild(option);
-    });
 }
 
 function toggleActionSelection(actionId) {
