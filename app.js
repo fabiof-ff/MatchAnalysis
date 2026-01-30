@@ -824,6 +824,7 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                        ${state.selectedActions.has(action.id) ? 'checked' : ''}
                        onchange="toggleActionSelection('${action.id}')">
                 <div class="action-info">
+                    <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
                     <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
                     <div class="action-duration-input">
                         <span>Inizio:</span>
@@ -834,8 +835,9 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                                onchange="updateActionTime('${action.id}', 'end', this.value)">
                     </div>
                     <div class="action-comment-input">
-                        <textarea placeholder="Aggiungi un commento..." 
-                                  onchange="updateActionComment('${action.id}', this.value)">${action.comment || ''}</textarea>
+                        <input type="text" placeholder="Aggiungi un commento..." 
+                               value="${action.comment || ''}"
+                               onchange="updateActionComment('${action.id}', this.value)">
                     </div>
                 </div>
                 <div class="action-controls-btns">

@@ -754,24 +754,23 @@ video {
     min-width: 200px;
 }
 
-.action-comment-input textarea {
+.action-comment-input input[type="text"] {
     width: 100%;
-    min-height: 32px;
+    height: 32px;
     padding: 5px 8px;
     border: 2px solid #e0e0e0;
     border-radius: 5px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.85em;
-    resize: vertical;
     transition: border-color 0.3s;
 }
 
-.action-comment-input textarea:focus {
+.action-comment-input input[type="text"]:focus {
     outline: none;
     border-color: #3498db;
 }
 
-.action-comment-input textarea::placeholder {
+.action-comment-input input[type="text"]::placeholder {
     color: #bdc3c7;
     font-style: italic;
 }
