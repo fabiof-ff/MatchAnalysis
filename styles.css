@@ -135,7 +135,7 @@ header p {
 
 .main-content {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr 2fr;
     gap: 20px;
     padding: 20px;
 }
@@ -276,8 +276,8 @@ video {
 
 .tag-list {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    grid-template-columns: 1fr;
+    gap: 10px;
     max-height: 400px;
     overflow-y: auto;
 }
