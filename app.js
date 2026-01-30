@@ -172,7 +172,6 @@ function setupActionsListeners() {
     const deselectAllBtn = document.getElementById('deselectAllBtn');
     const toggleFilterBtn = document.getElementById('toggleFilterBtn');
     const collapseAllBtn = document.getElementById('collapseAllBtn');
-    const resetOrderBtn = document.getElementById('resetOrderBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
@@ -183,7 +182,6 @@ function setupActionsListeners() {
         deselectAllBtn: !!deselectAllBtn,
         toggleFilterBtn: !!toggleFilterBtn,
         collapseAllBtn: !!collapseAllBtn,
-        resetOrderBtn: !!resetOrderBtn,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
@@ -194,7 +192,6 @@ function setupActionsListeners() {
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
     if (toggleFilterBtn) toggleFilterBtn.addEventListener('click', toggleFilterPanel);
     if (collapseAllBtn) collapseAllBtn.addEventListener('click', toggleCollapseAll);
-    if (resetOrderBtn) resetOrderBtn.addEventListener('click', resetCustomOrder);
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -794,13 +791,6 @@ function toggleCollapseAll() {
     
     // Aggiorna il testo del pulsante
     collapseAllBtn.textContent = hasExpanded ? '📂 Espandi Tutti' : '📄 Compatta Tutti';
-}
-
-function resetCustomOrder() {
-    state.customOrder = [];
-    saveStateToLocalStorage();
-    renderActions();
-    showNotification('✅ Ordine resettato! Gruppi ordinati per tag.', 'success', 2000);
 }
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
