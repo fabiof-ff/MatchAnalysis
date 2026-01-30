@@ -797,9 +797,13 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
         groupedByTag.get(action.tag.id).actions.push(action);
     });
     
+    // Ordina i gruppi in base all'ordine dei tag
+    const sortedGroups = Array.from(groupedByTag.entries())
+        .sort((a, b) => (a[1].tag.order || 0) - (b[1].tag.order || 0));
+    
     // Crea i gruppi
     let groupIndex = 0;
-    groupedByTag.forEach((group, tagId) => {
+    sortedGroups.forEach(([tagId, group]) => {
         const groupContainer = document.createElement('div');
         groupContainer.className = 'tag-group';
         groupContainer.dataset.tagId = tagId;
@@ -1022,7 +1026,10 @@ function populateTagFilter() {
     
     panel.innerHTML = '<div style="font-weight: 600; margin-bottom: 10px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Seleziona Tag:</div>';
     
-    state.tags.forEach(tag => {
+    // Ordina i tag in base al loro order
+    const sortedTags = [...state.tags].sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    sortedTags.forEach(tag => {
         const item = document.createElement('div');
         item.className = 'filter-tag-item';
         
