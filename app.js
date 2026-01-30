@@ -642,9 +642,6 @@ function renderActions() {
     
     // Ordina le azioni in base a customOrder se disponibile, altrimenti per tag order
     let sortedActions;
-    
-    console.log('customOrder disponibile:', state.customOrder?.length, 'azioni totali:', filteredActions.length);
-    
     if (state.customOrder && state.customOrder.length > 0) {
         // Usa l'ordinamento personalizzato
         const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
@@ -654,7 +651,6 @@ function renderActions() {
             if (orderA !== orderB) return orderA - orderB;
             return a.startTime - b.startTime;
         });
-        console.log('Usando customOrder');
     } else {
         // Ordinamento predefinito per tag order, poi per tempo
         sortedActions = [...filteredActions].sort((a, b) => {
@@ -663,7 +659,6 @@ function renderActions() {
             if (tagOrderA !== tagOrderB) return tagOrderA - tagOrderB;
             return a.startTime - b.startTime;
         });
-        console.log('Usando ordinamento per tag.order');
     }
     
     // Mostra sempre i gruppi
