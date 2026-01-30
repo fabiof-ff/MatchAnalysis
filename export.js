@@ -1,5 +1,103 @@
 // Export Actions and Generate FFmpeg Script
 
+// Variable to store the directory handle
+let videoDirectoryHandle = null;
+
+// Funzione per impostare la directory dall'esterno
+function setVideoDirectoryHandle(dirHandle) {
+    videoDirectoryHandle = dirHandle;
+    console.log('Directory handle impostata:', dirHandle.name);
+}
+
+// Helper function to save files with dialog
+async function saveFileInVideoFolder(content, defaultFileName, description) {
+    try {
+        // Verifica se il browser supporta la File System Access API
+        if ('showSaveFilePicker' in window) {
+            const options = {
+                suggestedName: defaultFileName,
+                types: [{
+                    description: description,
+                    accept: {
+                        'text/plain': ['.bat', '.ps1'],
+                        'application/json': ['.json']
+                    }
+                }]
+            };
+            
+            // Se abbiamo già una directory salvata, prova a usarla come punto di partenza
+            if (videoDirectoryHandle) {
+                try {
+                    // Verifica che abbiamo ancora i permessi
+                    const permission = await videoDirectoryHandle.queryPermission({ mode: 'readwrite' });
+                    if (permission === 'granted') {
+                        // Crea il file direttamente nella directory del video
+                        const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(content);
+                        await writable.close();
+                        showNotification(`✅ File salvato in: ${videoDirectoryHandle.name}\\${defaultFileName}`, 'success');
+                        return true;
+                    }
+                } catch (e) {
+                    console.log('Directory handle non più valida, chiedo nuova directory');
+                    videoDirectoryHandle = null;
+                }
+            }
+            
+            // Se non abbiamo una directory o i permessi sono scaduti, chiedi all'utente
+            if (!videoDirectoryHandle) {
+                // Chiedi la directory
+                showNotification('📁 Seleziona la cartella dove salvare i file (es. cartella del video)', 'info');
+                
+                videoDirectoryHandle = await window.showDirectoryPicker({
+                    mode: 'readwrite'
+                });
+                
+                // Salva il file nella directory selezionata
+                const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                showNotification(`✅ File salvato in: ${videoDirectoryHandle.name}\\${defaultFileName}`, 'success');
+                return true;
+            }
+            
+            // Fallback: usa il dialogo normale
+            const handle = await window.showSaveFilePicker(options);
+            const writable = await handle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            return true;
+        } else {
+            // Fallback: download normale
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = defaultFileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification(`✅ File scaricato: ${defaultFileName}`, 'info');
+            return true;
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error('Errore salvataggio file:', err);
+            // Fallback in caso di errore
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = defaultFileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification(`✅ File scaricato: ${defaultFileName}`, 'info');
+        }
+        return false;
+    }
+}
+
 // State for merge videos
 const mergeState = {
     videosToMerge: []
@@ -267,7 +365,7 @@ set OUTPUT_VIDEO=merged_video_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:
     showNotification(`✅ Script merge scaricato! Metti lo script nella cartella con i ${videoNames.length} video ed eseguilo.`, 'success');
 }
 
-function exportActionsToFFmpeg() {
+async function exportActionsToFFmpeg() {
     if (state.selectedActions.size === 0) {
         alert('Seleziona almeno un\'azione da esportare');
         return;
@@ -357,19 +455,14 @@ echo.
     // Error handling
     ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che FFmpeg sia installato e nel PATH.\necho.\npause\ngoto end\n\n:end\npause\n`;
     
-    // Download as .bat file
-    const blob = new Blob([ffmpegScript], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `create_highlight_${Date.now()}.bat`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Salva il file con dialogo
+    const fileName = `create_highlight_${Date.now()}.bat`;
+    const saved = await saveFileInVideoFolder(ffmpegScript, fileName, 'Script FFmpeg');
     
-    showNotification('✅ Script FFmpeg scaricato! Mettilo nella stessa cartella del video e eseguilo.', 'success');
+    // Non mostrare notifica qui, la mostra già saveFileInVideoFolder
 }
 
-function exportActionsToJSON() {
+async function exportActionsToJSON() {
     const data = {
         exportDate: new Date().toISOString(),
         videoName: state.currentVideo ? state.currentVideo.name : null,
@@ -378,15 +471,10 @@ function exportActionsToJSON() {
     };
     
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `match_analysis_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const fileName = `match_analysis_${Date.now()}.json`;
+    await saveFileInVideoFolder(json, fileName, 'Match Analysis JSON');
     
-    showNotification('✅ Dati esportati in JSON!', 'success');
+    // Non mostrare notifica qui, la mostra già saveFileInVideoFolder
 }
 
 function importActionsFromJSON(file) {

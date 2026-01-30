@@ -88,9 +88,7 @@ function initializeDefaultTags() {
 function setupEventListeners() {
     // Video Loading
     const loadVideoBtn = document.getElementById('loadVideoBtn');
-    const videoInput = document.getElementById('videoInput');
-    if (loadVideoBtn) loadVideoBtn.addEventListener('click', loadVideo);
-    if (videoInput) videoInput.addEventListener('change', handleVideoFileSelect);
+    if (loadVideoBtn) loadVideoBtn.addEventListener('click', loadVideoWithPicker);
     
     // Video Player Events
     const videoPlayer = document.getElementById('videoPlayer');
@@ -242,32 +240,50 @@ function switchToTab(tabId) {
 
 
 // Video Loading
-function handleVideoFileSelect(event) {
-    const files = Array.from(event.target.files);
-    if (files.length > 0) {
-        state.videoFiles = files;
+async function loadVideoWithPicker() {
+    try {
+        // Verifica se il browser supporta la File System Access API
+        if ('showOpenFilePicker' in window) {
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [{
+                    description: 'Video Files',
+                    accept: {
+                        'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.webm']
+                    }
+                }],
+                multiple: false
+            });
+            
+            // Ottieni il file dal handle
+            const file = await fileHandle.getFile();
+            
+            const videoPlayer = document.getElementById('videoPlayer');
+            const url = URL.createObjectURL(file);
+            
+            videoPlayer.src = url;
+            state.currentVideo = {
+                name: file.name,
+                url: url,
+                file: file,
+                fileHandle: fileHandle
+            };
+            
+            videoPlayer.load();
+            console.log('Video caricato:', file.name);
+            showNotification('✅ Video caricato!', 'success');
+            
+        } else {
+            // Fallback: usa il metodo tradizionale con alert
+            alert('Il tuo browser non supporta la selezione file avanzata.\nUsa Chrome o Edge per una migliore esperienza.');
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            console.log('Selezione video annullata');
+        } else {
+            console.error('Errore caricamento video:', err);
+            alert('Errore nel caricamento del video.');
+        }
     }
-}
-
-function loadVideo() {
-    if (state.videoFiles.length === 0) {
-        alert('Seleziona prima un file video');
-        return;
-    }
-    
-    const videoPlayer = document.getElementById('videoPlayer');
-    const file = state.videoFiles[0];
-    const url = URL.createObjectURL(file);
-    
-    videoPlayer.src = url;
-    state.currentVideo = {
-        name: file.name,
-        url: url,
-        file: file
-    };
-    
-    videoPlayer.load();
-    console.log('Video caricato:', file.name);
 }
 
 // Time Formatting
