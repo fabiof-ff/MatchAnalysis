@@ -528,8 +528,7 @@ async function exportActionsToJSON() {
     const data = {
         exportDate: new Date().toISOString(),
         videoName: state.currentVideo ? state.currentVideo.name : null,
-        actions: state.actions,
-        tags: state.tags
+        actions: state.actions
     };
     
     const json = JSON.stringify(data, null, 2);
@@ -544,14 +543,53 @@ function importActionsFromJSON(file) {
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            
-            if (confirm(`Importare ${data.actions.length} azioni e ${data.tags.length} tag?\n\nQuesto sostituirà i dati attuali.`)) {
-                state.actions = data.actions;
-                state.tags = data.tags;
+            const actions = Array.isArray(data) ? data : data.actions;
+            if (!actions || actions.length === 0) {
+                alert('File JSON non valido o senza azioni.');
+                return;
+            }
+
+            if (confirm(`Importare ${actions.length} azioni?\n\nQuesto sostituirà le azioni attuali.`)) {
+                state.actions = actions;
                 renderActions();
-                renderTags();
                 saveStateToLocalStorage();
-                showNotification('✅ Dati importati con successo!', 'success');
+                showNotification('✅ Azioni importate con successo!', 'success');
+            }
+        } catch (error) {
+            alert('Errore nell\'importazione: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+async function exportTagsToJSON() {
+    const data = {
+        exportDate: new Date().toISOString(),
+        tags: state.tags
+    };
+    
+    const json = JSON.stringify(data, null, 2);
+    const fileName = `match_tags_${Date.now()}.json`;
+    await saveFileInVideoFolder(json, fileName, 'Tags JSON');
+}
+
+function importTagsFromJSON(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            const tags = Array.isArray(data) ? data : data.tags;
+            if (!tags || tags.length === 0) {
+                alert('File JSON non valido o senza tag.');
+                return;
+            }
+
+            if (confirm(`Importare ${tags.length} tag?\n\nQuesto sostituirà i tag attuali.`)) {
+                state.tags = tags;
+                renderTags();
+                populateTagFilter();
+                saveTagsToLocalStorage();
+                showNotification('✅ Tag importati con successo!', 'success');
             }
         } catch (error) {
             alert('Errore nell\'importazione: ' + error.message);
@@ -564,6 +602,8 @@ function importActionsFromJSON(file) {
 window.exportActionsToFFmpeg = exportActionsToFFmpeg;
 window.exportActionsToJSON = exportActionsToJSON;
 window.importActionsFromJSON = importActionsFromJSON;
+window.exportTagsToJSON = exportTagsToJSON;
+window.importTagsFromJSON = importTagsFromJSON;
 window.selectMergeVideos = selectMergeVideos;
 window.exportMergeScript = exportMergeScript;
 window.removeMergeVideo = removeMergeVideo;

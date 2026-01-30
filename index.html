@@ -28,6 +28,13 @@
                         <input type="color" id="tagColor" value="#3498db">
                         <button id="addTagBtn">+</button>
                     </div>
+                    <div class="actions-toolbar">
+                        <button id="exportTagsJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta Tag JSON</button>
+                        <label for="importTagsJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
+                            📂 Importa Tag JSON
+                            <input type="file" id="importTagsJSONInput" accept=".json" style="display: none;">
+                        </label>
+                    </div>
                     
                     <div class="tag-list" id="tagList">
                         <!-- Tags precaricati -->
@@ -83,10 +90,10 @@
                 <button id="collapseAllBtn">📄 Compatta Tutti</button>
                 <button id="deleteSelectedBtn">Elimina Selezionati</button>
                 <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
-                <button id="exportJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta JSON</button>
-                <label for="importJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
-                    📂 Importa JSON
-                    <input type="file" id="importJSONInput" accept=".json" style="display: none;">
+                <button id="exportActionsJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta Azioni JSON</button>
+                <label for="importActionsJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
+                    📂 Importa Azioni JSON
+                    <input type="file" id="importActionsJSONInput" accept=".json" style="display: none;">
                 </label>
             </div>
             <div id="actionsList" class="actions-list">

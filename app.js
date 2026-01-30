@@ -215,8 +215,10 @@ function setupActionsListeners() {
     const collapseAllBtn = document.getElementById('collapseAllBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
-    const exportJSONBtn = document.getElementById('exportJSONBtn');
-    const importJSONInput = document.getElementById('importJSONInput');
+    const exportActionsJSONBtn = document.getElementById('exportActionsJSONBtn');
+    const importActionsJSONInput = document.getElementById('importActionsJSONInput');
+    const exportTagsJSONBtn = document.getElementById('exportTagsJSONBtn');
+    const importTagsJSONInput = document.getElementById('importTagsJSONInput');
     
     console.log('Elementi trovati:', {
         selectAllBtn: !!selectAllBtn,
@@ -225,8 +227,10 @@ function setupActionsListeners() {
         collapseAllBtn: !!collapseAllBtn,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
-        exportJSONBtn: !!exportJSONBtn,
-        importJSONInput: !!importJSONInput
+        exportActionsJSONBtn: !!exportActionsJSONBtn,
+        importActionsJSONInput: !!importActionsJSONInput,
+        exportTagsJSONBtn: !!exportTagsJSONBtn,
+        importTagsJSONInput: !!importTagsJSONInput
     });
     
     if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllActions);
@@ -235,11 +239,19 @@ function setupActionsListeners() {
     if (collapseAllBtn) collapseAllBtn.addEventListener('click', toggleCollapseAll);
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
-    if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
-    if (importJSONInput) {
-        importJSONInput.addEventListener('change', (e) => {
+    if (exportActionsJSONBtn) exportActionsJSONBtn.addEventListener('click', exportActionsToJSON);
+    if (importActionsJSONInput) {
+        importActionsJSONInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 importActionsFromJSON(e.target.files[0]);
+            }
+        });
+    }
+    if (exportTagsJSONBtn) exportTagsJSONBtn.addEventListener('click', exportTagsToJSON);
+    if (importTagsJSONInput) {
+        importTagsJSONInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                importTagsFromJSON(e.target.files[0]);
             }
         });
     }
