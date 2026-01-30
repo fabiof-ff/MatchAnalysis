@@ -14,30 +14,74 @@ const state = {
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+    // Prima carica le azioni dal localStorage
+    loadActionsFromLocalStorage();
+    // Poi inizializza sempre i tag di default
     initializeDefaultTags();
     setupTabs();
     setupEventListeners();
-    setupActionsListeners();
-    loadStateFromLocalStorage();
     renderTags();
     renderActions();
+    // IMPORTANTE: setupActionsListeners DOPO il rendering
+    setupActionsListeners();
+    console.log('App inizializzata - Tags:', state.tags.length);
 });
 
 // Default Tags
 function initializeDefaultTags() {
     const defaultTags = [
-        { id: 'goal', name: 'Goal', color: '#27ae60' },
-        { id: 'assist', name: 'Assist', color: '#3498db' },
-        { id: 'fallo', name: 'Fallo', color: '#e74c3c' },
-        { id: 'corner', name: 'Corner', color: '#f39c12' },
-        { id: 'tiro', name: 'Tiro', color: '#9b59b6' },
-        { id: 'parata', name: 'Parata', color: '#1abc9c' },
-        { id: 'cartellino', name: 'Cartellino', color: '#e67e22' }
+        { id: 'goal', name: 'Goal', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 0 },
+        { id: 'assist', name: 'Assist', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 1 },
+        { id: 'fallo', name: 'Fallo', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2 },
+        { id: 'corner', name: 'Corner', color: '#f39c12', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 3 },
+        { id: 'tiro', name: 'Tiro', color: '#9b59b6', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 4 },
+        { id: 'parata', name: 'Parata', color: '#1abc9c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5 },
+        { id: 'cartellino', name: 'Cartellino', color: '#e67e22', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6 }
     ];
     
-    if (state.tags.length === 0) {
-        state.tags = defaultTags;
+    console.log('initializeDefaultTags - state.tags.length PRIMA:', state.tags.length);
+    
+    // Prova a caricare i tag salvati
+    const saved = localStorage.getItem('matchAnalysisTags');
+    if (saved) {
+        try {
+            const loadedTags = JSON.parse(saved);
+            if (loadedTags && Array.isArray(loadedTags) && loadedTags.length > 0) {
+                state.tags = loadedTags;
+                console.log('Tag caricati da localStorage:', state.tags.length, state.tags);
+            } else {
+                console.log('localStorage vuoto o non valido, uso i default');
+                state.tags = [...defaultTags];
+            }
+        } catch (e) {
+            console.error('Errore parsing localStorage, uso i default:', e);
+            state.tags = [...defaultTags];
+        }
+    } else {
+        console.log('Nessun localStorage trovato, uso i default');
+        state.tags = [...defaultTags];
     }
+    
+    // Assicurati che tutti i default esistano
+    defaultTags.forEach(defaultTag => {
+        const exists = state.tags.find(t => t.id === defaultTag.id);
+        if (!exists) {
+            console.log('Aggiunto tag default mancante:', defaultTag.name);
+            state.tags.push(defaultTag);
+        }
+    });
+    
+    // Ordina per order
+    state.tags.sort((a, b) => {
+        const orderA = a.order !== undefined ? a.order : 999;
+        const orderB = b.order !== undefined ? b.order : 999;
+        return orderA - orderB;
+    });
+    
+    console.log('initializeDefaultTags - state.tags.length DOPO:', state.tags.length, state.tags);
+    
+    // Salva sempre
+    saveTagsToLocalStorage();
 }
 
 // Event Listeners Setup
@@ -66,12 +110,6 @@ function setupEventListeners() {
             if (e.key === 'Enter') addNewTag();
         });
     }
-    
-    // Action Marking
-    const markStartBtn = document.getElementById('markStartBtn');
-    const markEndBtn = document.getElementById('markEndBtn');
-    if (markStartBtn) markStartBtn.addEventListener('click', markStart);
-    if (markEndBtn) markEndBtn.addEventListener('click', markEnd);
     
     // Merge Videos
     const selectMergeVideosBtn = document.getElementById('selectMergeVideosBtn');
@@ -128,11 +166,19 @@ function setupEventListeners() {
 }
 
 function setupActionsListeners() {
+    console.log('setupActionsListeners chiamata');
     // Actions Management - chiamata dopo che il template è stato inserito
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
     const importJSONInput = document.getElementById('importJSONInput');
+    
+    console.log('Elementi trovati:', {
+        deleteSelectedBtn: !!deleteSelectedBtn,
+        exportFFmpegBtn: !!exportFFmpegBtn,
+        exportJSONBtn: !!exportJSONBtn,
+        importJSONInput: !!importJSONInput
+    });
     
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
@@ -144,6 +190,8 @@ function setupActionsListeners() {
             }
         });
     }
+    
+    console.log('setupActionsListeners completata');
 }
 
 // Tabs Management
@@ -257,56 +305,198 @@ function addNewTag() {
     const newTag = {
         id: 'tag_' + Date.now(),
         name: name,
-        color: colorInput.value
+        color: colorInput.value,
+        offsetBefore: 5,
+        offsetAfter: 5,
+        isDefault: false,
+        order: state.tags.length
     };
     
     state.tags.push(newTag);
     nameInput.value = '';
     
     renderTags();
-    saveStateToLocalStorage();
+    saveTagsToLocalStorage();
 }
 
 function renderTags() {
     const tagList = document.getElementById('tagList');
-    tagList.innerHTML = '';
+    console.log('===== renderTags CHIAMATA =====');
+    console.log('Tags disponibili:', state.tags.length);
+    console.log('Tags:', state.tags);
+    console.log('Elemento tagList:', tagList);
     
-    state.tags.forEach(tag => {
+    if (!tagList) {
+        console.error('ERRORE: Elemento tagList non trovato nel DOM!');
+        return;
+    }
+    
+    tagList.innerHTML = '';
+    console.log('tagList innerHTML pulito');
+    
+    if (state.tags.length === 0) {
+        console.error('ERRORE: Nessun tag da renderizzare!');
+        return;
+    }
+    
+    console.log('Inizio loop forEach per renderizzare', state.tags.length, 'tag');
+    
+    state.tags.forEach((tag, index) => {
+        console.log('Renderizzando tag', index, ':', tag.name);
         const tagItem = document.createElement('div');
         tagItem.className = 'tag-item';
+        tagItem.draggable = true;
+        tagItem.dataset.tagId = tag.id;
+        
         if (state.selectedTag && state.selectedTag.id === tag.id) {
             tagItem.classList.add('selected');
         }
         tagItem.style.backgroundColor = tag.color;
         
+        const deleteBtn = tag.isDefault ? '' : `<button class="delete-tag" onclick="deleteTag('${tag.id}')">×</button>`;
+        
         tagItem.innerHTML = `
-            <span>${tag.name}</span>
-            <button class="delete-tag" onclick="deleteTag('${tag.id}')">×</button>
+            <div class="tag-header">
+                <span class="tag-name">${tag.name}</span>
+                ${deleteBtn}
+            </div>
+            <div class="tag-offset">
+                <label>-<input type="number" class="offset-input" value="${tag.offsetBefore}" min="0" max="30" data-tag-id="${tag.id}" data-type="before"> sec</label>
+                <label>+<input type="number" class="offset-input" value="${tag.offsetAfter}" min="0" max="30" data-tag-id="${tag.id}" data-type="after"> sec</label>
+            </div>
         `;
         
+        // Click per creare azione
         tagItem.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('delete-tag')) {
-                selectTag(tag);
+            if (!e.target.classList.contains('delete-tag') && !e.target.classList.contains('offset-input')) {
+                createActionFromTag(tag);
             }
         });
         
+        // Drag and drop
+        tagItem.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            tagItem.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', tag.id);
+        });
+        
+        tagItem.addEventListener('dragend', (e) => {
+            tagItem.classList.remove('dragging');
+        });
+        
+        tagItem.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const draggingItem = document.querySelector('.dragging');
+            if (draggingItem && draggingItem !== tagItem) {
+                const rect = tagItem.getBoundingClientRect();
+                const midpoint = rect.left + rect.width / 2;
+                if (e.clientX < midpoint) {
+                    tagList.insertBefore(draggingItem, tagItem);
+                } else {
+                    tagList.insertBefore(draggingItem, tagItem.nextSibling);
+                }
+            }
+        });
+        
+        tagItem.addEventListener('drop', (e) => {
+            e.preventDefault();
+            reorderTags();
+        });
+        
+        // Listener per gli input di offset
+        const offsetInputs = tagItem.querySelectorAll('.offset-input');
+        offsetInputs.forEach(input => {
+            input.addEventListener('click', (e) => e.stopPropagation());
+            input.addEventListener('change', (e) => {
+                updateTagOffset(e.target.dataset.tagId, e.target.dataset.type, parseInt(e.target.value));
+            });
+        });
+        
         tagList.appendChild(tagItem);
+        console.log('Tag', tag.name, 'aggiunto al DOM');
     });
+    
+    console.log('===== renderTags COMPLETATA - Tag nel DOM:', tagList.children.length, '=====');
 }
 
-function selectTag(tag) {
+function reorderTags() {
+    const tagList = document.getElementById('tagList');
+    const tagItems = Array.from(tagList.querySelectorAll('.tag-item'));
+    const newOrder = tagItems.map(item => item.dataset.tagId);
+    
+    state.tags.sort((a, b) => {
+        return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
+    });
+    
+    // Aggiorna order
+    state.tags.forEach((tag, index) => {
+        tag.order = index;
+    });
+    
+    saveTagsToLocalStorage();
+    console.log('Tag riordinati:', state.tags.map(t => t.name));
+}
+
+function updateTagOffset(tagId, type, value) {
+    const tag = state.tags.find(t => t.id === tagId);
+    if (tag) {
+        if (type === 'before') {
+            tag.offsetBefore = value;
+        } else {
+            tag.offsetAfter = value;
+        }
+        saveTagsToLocalStorage();
+    }
+}
+
+function createActionFromTag(tag) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    if (!videoPlayer.src) {
+        alert('Carica prima un video');
+        return;
+    }
+    
+    const currentTime = videoPlayer.currentTime;
+    const startTime = Math.max(0, currentTime - tag.offsetBefore);
+    const endTime = Math.min(videoPlayer.duration || currentTime + tag.offsetAfter, currentTime + tag.offsetAfter);
+    
+    const action = {
+        id: 'action_' + Date.now(),
+        tag: { ...tag },
+        startTime: startTime,
+        endTime: endTime,
+        duration: endTime - startTime,
+        timestamp: new Date().toISOString(),
+        comment: ''
+    };
+    
+    state.actions.push(action);
     state.selectedTag = tag;
+    
+    renderActions();
     renderTags();
+    saveStateToLocalStorage();
+    
+    showNotification(`✅ Azione "${tag.name}" creata: ${formatTime(startTime)} - ${formatTime(endTime)}`, 'success');
+    console.log('Azione creata:', action);
 }
 
 function deleteTag(tagId) {
+    const tag = state.tags.find(t => t.id === tagId);
+    if (tag && tag.isDefault) {
+        alert('Non puoi eliminare i tag di default');
+        return;
+    }
+    
     if (confirm('Sei sicuro di voler eliminare questo tag?')) {
         state.tags = state.tags.filter(t => t.id !== tagId);
         if (state.selectedTag && state.selectedTag.id === tagId) {
             state.selectedTag = null;
         }
         renderTags();
-        saveStateToLocalStorage();
+        saveTagsToLocalStorage();
     }
 }
 
@@ -620,11 +810,17 @@ function setupModalControls() {
         }
     });
     
-    // Generate highlight button
-    document.getElementById('generateHighlightBtn').addEventListener('click', generateHighlight);
+    // Generate highlight button (se esiste)
+    const generateHighlightBtn = document.getElementById('generateHighlightBtn');
+    if (generateHighlightBtn) {
+        generateHighlightBtn.addEventListener('click', generateHighlight);
+    }
     
-    // Execute merge button
-    document.getElementById('executeMergeBtn').addEventListener('click', executeMerge);
+    // Execute merge button (se esiste)
+    const executeMergeBtn = document.getElementById('executeMergeBtn');
+    if (executeMergeBtn) {
+        executeMergeBtn.addEventListener('click', executeMerge);
+    }
 }
 
 function closeModal(modalId) {
@@ -644,13 +840,47 @@ function saveStateToLocalStorage() {
     }
 }
 
+function saveTagsToLocalStorage() {
+    try {
+        console.log('Salvataggio tags:', state.tags.length);
+        localStorage.setItem('matchAnalysisTags', JSON.stringify(state.tags));
+    } catch (e) {
+        console.error('Errore nel salvataggio tags:', e);
+    }
+}
+
+function loadActionsFromLocalStorage() {
+    try {
+        const saved = localStorage.getItem('matchAnalysisActions');
+        if (saved) {
+            state.actions = JSON.parse(saved);
+            console.log('Azioni caricate:', state.actions.length);
+        }
+    } catch (e) {
+        console.error('Errore nel caricamento azioni:', e);
+    }
+}
+
+function saveStateToLocalStorage() {
+    saveTagsToLocalStorage();
+    try {
+        localStorage.setItem('matchAnalysisActions', JSON.stringify(state.actions));
+    } catch (e) {
+        console.error('Errore nel salvataggio azioni:', e);
+    }
+}
+
 function loadStateFromLocalStorage() {
     try {
         const saved = localStorage.getItem('matchAnalysisState');
         if (saved) {
             const data = JSON.parse(saved);
-            if (data.tags) state.tags = data.tags;
+            // Carica solo i tag custom, i default verranno aggiunti dopo
+            if (data.tags && data.tags.length > 0) {
+                state.tags = data.tags.filter(t => !t.isDefault); // Solo tag custom
+            }
             if (data.actions) state.actions = data.actions;
+            console.log('Stato caricato da localStorage - Tags custom:', state.tags.length);
         }
     } catch (e) {
         console.error('Errore nel caricamento:', e);

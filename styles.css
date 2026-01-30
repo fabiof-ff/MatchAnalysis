@@ -236,7 +236,7 @@ video {
 .tag-panel {
     background: #f8f9fa;
     border-radius: 10px;
-    padding: 20px;
+    padding: 15px;
 }
 
 .tag-panel h2 {
@@ -246,72 +246,135 @@ video {
 
 .tag-creation {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
 .tag-creation input[type="text"] {
-    padding: 10px;
+    flex: 1;
+    padding: 8px;
     border: 2px solid #ddd;
     border-radius: 5px;
-    font-size: 1em;
+    font-size: 0.95em;
 }
 
 .tag-creation input[type="color"] {
-    height: 40px;
-    border: none;
+    width: 50px;
+    height: 38px;
+    border: 2px solid #ddd;
     border-radius: 5px;
     cursor: pointer;
+    padding: 2px;
+}
+
+.tag-creation button {
+    padding: 8px 16px;
+    white-space: nowrap;
 }
 
 .tag-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 300px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-height: 400px;
     overflow-y: auto;
 }
 
 .tag-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    border-radius: 5px;
+    flex-direction: column;
+    padding: 8px 10px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
+    gap: 5px;
+}
+
+.tag-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
 }
 
 .tag-item:hover {
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: grab;
+}
+
+.tag-item:active {
+    cursor: grabbing;
 }
 
 .tag-item.selected {
     border: 2px solid #2c3e50;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.tag-item span {
-    font-weight: 600;
+.tag-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tag-name {
+    font-weight: 700;
     color: white;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    font-size: 0.95em;
+}
+
+.tag-offset {
+    display: flex;
+    gap: 6px;
+    font-size: 0.75em;
+    color: white;
+    font-weight: 600;
+}
+
+.tag-offset label {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 3px 6px;
+    border-radius: 3px;
+}
+
+.offset-input {
+    width: 35px;
+    padding: 1px 3px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    text-align: center;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 0.9em;
+}
+
+.offset-input:focus {
+    outline: none;
+    border-color: #2c3e50;
+    background: white;
 }
 
 .tag-item .delete-tag {
     background: rgba(255, 255, 255, 0.3);
     border: none;
     color: white;
-    padding: 5px 10px;
+    padding: 2px 6px;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 1em;
+    font-weight: bold;
+    transition: all 0.2s;
 }
 
 .tag-item .delete-tag:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 0, 0, 0.7);
+    transform: scale(1.1);
 }
 
 .action-controls {
