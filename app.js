@@ -680,6 +680,13 @@ function renderActions() {
             break;
     }
     
+    // Se modalità tag, raggruppa le azioni per tag
+    if (state.sortMode === 'tag') {
+        renderActionsGroupedByTag(sortedActions, actionsList);
+        return;
+    }
+    
+    // Altrimenti rendering normale con singole azioni draggable
     sortedActions.forEach(action => {
         const actionItem = document.createElement('div');
         actionItem.className = 'action-item';
@@ -784,6 +791,166 @@ function changeSortMode(mode) {
     state.sortMode = mode;
     renderActions();
     console.log('Modalità ordinamento cambiata:', mode);
+}
+
+// Rendering raggruppato per tag con drag-and-drop di interi gruppi
+function renderActionsGroupedByTag(sortedActions, actionsList) {
+    // Raggruppa le azioni per tag
+    const groupedByTag = new Map();
+    sortedActions.forEach(action => {
+        if (!groupedByTag.has(action.tag.id)) {
+            groupedByTag.set(action.tag.id, {
+                tag: action.tag,
+                actions: []
+            });
+        }
+        groupedByTag.get(action.tag.id).actions.push(action);
+    });
+    
+    // Crea i gruppi
+    let groupIndex = 0;
+    groupedByTag.forEach((group, tagId) => {
+        const groupContainer = document.createElement('div');
+        groupContainer.className = 'tag-group';
+        groupContainer.dataset.tagId = tagId;
+        groupContainer.dataset.groupIndex = groupIndex++;
+        
+        // Header del gruppo (draggable)
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'tag-group-header';
+        groupHeader.draggable = true;
+        groupHeader.style.backgroundColor = group.tag.color + '20';
+        groupHeader.style.borderLeft = `4px solid ${group.tag.color}`;
+        groupHeader.innerHTML = `
+            <span class="drag-handle">⋮⋮</span>
+            <span class="group-tag-name" style="color: ${group.tag.color}; font-weight: 600;">${group.tag.name}</span>
+            <span class="group-count">(${group.actions.length} azioni)</span>
+        `;
+        
+        // Drag and drop per il gruppo intero
+        groupHeader.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            groupContainer.classList.add('dragging-group');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', tagId);
+        });
+        
+        groupHeader.addEventListener('dragend', (e) => {
+            groupContainer.classList.remove('dragging-group');
+        });
+        
+        groupContainer.appendChild(groupHeader);
+        
+        // Contenitore per le azioni del gruppo
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'tag-group-actions';
+        
+        // Aggiungi ogni azione del gruppo
+        group.actions.forEach(action => {
+            const actionItem = document.createElement('div');
+            actionItem.className = 'action-item action-in-group';
+            actionItem.dataset.actionId = action.id;
+            
+            if (state.selectedActions.has(action.id)) {
+                actionItem.classList.add('selected-action');
+            }
+            
+            actionItem.innerHTML = `
+                <input type="checkbox" class="action-checkbox" 
+                       ${state.selectedActions.has(action.id) ? 'checked' : ''}
+                       onchange="toggleActionSelection('${action.id}')">
+                <div class="action-info">
+                    <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
+                    <div class="action-duration-input">
+                        <span>Inizio:</span>
+                        <input type="number" step="0.1" value="${action.startTime.toFixed(1)}" 
+                               onchange="updateActionTime('${action.id}', 'start', this.value)">
+                        <span>Fine:</span>
+                        <input type="number" step="0.1" value="${action.endTime.toFixed(1)}" 
+                               onchange="updateActionTime('${action.id}', 'end', this.value)">
+                    </div>
+                    <div class="action-comment-input">
+                        <textarea placeholder="Aggiungi un commento..." 
+                                  onchange="updateActionComment('${action.id}', this.value)">${action.comment || ''}</textarea>
+                    </div>
+                </div>
+                <div class="action-controls-btns">
+                    <button class="btn-play" onclick="playAction('${action.id}')">▶</button>
+                    <button class="btn-delete" onclick="deleteAction('${action.id}')">×</button>
+                </div>
+            `;
+            
+            actionsContainer.appendChild(actionItem);
+        });
+        
+        groupContainer.appendChild(actionsContainer);
+        actionsList.appendChild(groupContainer);
+    });
+    
+    // Setup drag-over per riordinare i gruppi
+    actionsList.addEventListener('dragover', handleGroupDragOver);
+    actionsList.addEventListener('drop', handleGroupDrop);
+}
+
+function handleGroupDragOver(e) {
+    e.preventDefault();
+    const draggingGroup = document.querySelector('.dragging-group');
+    if (!draggingGroup) return;
+    
+    const afterElement = getDragAfterElementGroup(e.clientY);
+    const actionsList = document.getElementById('actionsList');
+    
+    if (afterElement == null) {
+        actionsList.appendChild(draggingGroup.parentElement);
+    } else {
+        actionsList.insertBefore(draggingGroup.parentElement, afterElement);
+    }
+}
+
+function handleGroupDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Salva il nuovo ordine dei gruppi
+    const actionsList = document.getElementById('actionsList');
+    const groups = Array.from(actionsList.querySelectorAll('.tag-group'));
+    
+    // Crea un nuovo ordine basato sui gruppi
+    state.customOrder = [];
+    groups.forEach(group => {
+        const actionsInGroup = group.querySelectorAll('.action-item[data-action-id]');
+        actionsInGroup.forEach(item => {
+            state.customOrder.push(item.dataset.actionId);
+        });
+    });
+    
+    // Passa a modalità custom
+    state.sortMode = 'custom';
+    const sortOrderSelect = document.getElementById('sortOrderSelect');
+    if (sortOrderSelect) {
+        sortOrderSelect.value = 'custom';
+    }
+    
+    showNotification('✅ Gruppi riordinati! Modalità cambiata a Ordine Personalizzato.', 'success', 2500);
+    
+    // Re-render con il nuovo ordine
+    renderActions();
+}
+
+function getDragAfterElementGroup(y) {
+    const actionsList = document.getElementById('actionsList');
+    const draggableElements = [...actionsList.querySelectorAll('.tag-group:not(.dragging-group)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 function populateTagFilter() {

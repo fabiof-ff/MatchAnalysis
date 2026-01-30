@@ -614,6 +614,61 @@ video {
     overflow-y: auto;
 }
 
+/* Stili per i gruppi di tag */
+.tag-group {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 0;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.tag-group.dragging-group {
+    opacity: 0.6;
+    transform: scale(0.98);
+}
+
+.tag-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tag-group-header:active {
+    cursor: grabbing;
+}
+
+.tag-group-header:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.tag-group-header .drag-handle {
+    font-size: 1.2em;
+    color: #95a5a6;
+    font-weight: bold;
+}
+
+.tag-group-header .group-tag-name {
+    font-size: 1.1em;
+    flex: 1;
+}
+
+.tag-group-header .group-count {
+    color: #7f8c8d;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.tag-group-actions {
+    padding: 12px;
+}
+
 .action-item {
     background: white;
     padding: 10px 15px;
@@ -626,6 +681,15 @@ video {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: all 0.3s;
     cursor: move;
+}
+
+.action-item.action-in-group {
+    cursor: default;
+    margin-bottom: 8px;
+}
+
+.action-item.action-in-group:last-child {
+    margin-bottom: 0;
 }
 
 .action-item.dragging {
