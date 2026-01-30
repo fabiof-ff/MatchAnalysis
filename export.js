@@ -376,6 +376,8 @@ async function exportActionsToFFmpeg() {
         .sort((a, b) => a.startTime - b.startTime);
     
     // Generate FFmpeg commands
+    const videoFileName = state.currentVideo ? state.currentVideo.name : 'VIDEO_NON_TROVATO.mp4';
+    
     let ffmpegScript = `@echo off
 REM Script generato da Match Analysis
 REM Video di sintesi con ${selectedActionsList.length} clip
@@ -388,8 +390,23 @@ echo Questo script richiede FFmpeg installato sul PC
 echo Download: https://ffmpeg.org/download.html
 echo.
 
-set INPUT_VIDEO=${state.currentVideo ? state.currentVideo.name : 'input.mp4'}
+set INPUT_VIDEO=${videoFileName}
 set OUTPUT_VIDEO=highlight_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4
+
+REM Verifica che il file video esista
+if not exist "%INPUT_VIDEO%" (
+    echo.
+    echo ERRORE: File video non trovato!
+    echo.
+    echo Cercato: %INPUT_VIDEO%
+    echo Cartella corrente: %CD%
+    echo.
+    echo IMPORTANTE: Questo script deve essere nella STESSA CARTELLA del video!
+    echo Copia il file video qui oppure sposta questo script nella cartella del video.
+    echo.
+    pause
+    exit /b 1
+)
 
 echo File input: %INPUT_VIDEO%
 echo Estrazione di ${selectedActionsList.length} clip...
@@ -455,11 +472,42 @@ echo.
     // Error handling
     ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che FFmpeg sia installato e nel PATH.\necho.\npause\ngoto end\n\n:end\npause\n`;
     
-    // Salva il file con dialogo
+    // Salva il file batch
     const fileName = `create_highlight_${Date.now()}.bat`;
-    const saved = await saveFileInVideoFolder(ffmpegScript, fileName, 'Script FFmpeg');
+    await saveFileInVideoFolder(ffmpegScript, fileName, 'Script FFmpeg');
     
-    // Non mostrare notifica qui, la mostra già saveFileInVideoFolder
+    // Crea anche uno script PowerShell per eseguirlo senza problemi di sicurezza
+    const psScript = `# Script di esecuzione per ${fileName}
+# Questo script sblocca e avvia il file batch
+
+Write-Host "Sblocco e avvio creazione highlight..." -ForegroundColor Green
+$scriptPath = Join-Path $PSScriptRoot "${fileName}"
+
+# Sblocca il file per rimuovere la protezione di Windows
+Unblock-File -Path $scriptPath -ErrorAction SilentlyContinue
+
+# Esegui il batch file
+Start-Process -FilePath $scriptPath -WorkingDirectory $PSScriptRoot -Wait
+
+Write-Host "Operazione completata!" -ForegroundColor Green
+`;
+    
+    const psFileName = `RUN_${fileName.replace('.bat', '.ps1')}`;
+    await saveFileInVideoFolder(psScript, psFileName, 'Script PowerShell');
+    
+    // Mostra notifica con istruzioni chiare
+    showNotification(
+        `✅ Script creati con successo!\n\n` +
+        `📂 Cartella: ${videoDirectoryHandle ? videoDirectoryHandle.name : 'Downloads'}\n\n` +
+        `▶️ PER CREARE L'HIGHLIGHT:\n` +
+        `1. Vai nella cartella del video\n` +
+        `2. Clicca col tasto destro su "${psFileName}"\n` +
+        `3. Seleziona "Esegui con PowerShell"\n\n` +
+        `⚠️ Se non funziona, apri PowerShell nella cartella ed esegui:\n` +
+        `.\\${psFileName}`,
+        'success',
+        10000  // Mostra per 10 secondi
+    );
 }
 
 async function exportActionsToJSON() {
