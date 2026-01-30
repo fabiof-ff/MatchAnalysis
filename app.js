@@ -891,6 +891,10 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
         actionsList.appendChild(groupContainer);
     });
     
+    // Rimuovi vecchi listener se presenti
+    actionsList.removeEventListener('dragover', handleGroupDragOver);
+    actionsList.removeEventListener('drop', handleGroupDrop);
+    
     // Setup drag-over per riordinare i gruppi
     actionsList.addEventListener('dragover', handleGroupDragOver);
     actionsList.addEventListener('drop', handleGroupDrop);
@@ -905,9 +909,9 @@ function handleGroupDragOver(e) {
     const actionsList = document.getElementById('actionsList');
     
     if (afterElement == null) {
-        actionsList.appendChild(draggingGroup.parentElement);
+        actionsList.appendChild(draggingGroup);
     } else {
-        actionsList.insertBefore(draggingGroup.parentElement, afterElement);
+        actionsList.insertBefore(draggingGroup, afterElement);
     }
 }
 
@@ -938,6 +942,7 @@ function handleGroupDrop(e) {
     // Salva lo stato
     saveStateToLocalStorage();
     
+    console.log('Nuovo ordine personalizzato salvato:', state.customOrder);
     showNotification('✅ Gruppi riordinati! Modalità cambiata a Ordine Personalizzato.', 'success', 2500);
     
     // Re-render con il nuovo ordine (non in modalità tag, ma custom)
