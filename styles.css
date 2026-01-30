@@ -847,10 +847,10 @@ video {
     border-radius: 6px;
     border-left: 3px solid #3498db;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     grid-template-rows: auto auto;
-    gap: 6px;
-    min-height: 60px;
+    gap: 8px;
+    min-height: 45px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.3s;
     cursor: move;
@@ -893,7 +893,7 @@ video {
     cursor: pointer;
     grid-row: 1;
     grid-column: 1;
-    align-self: start;
+    align-self: center;
 }
 
 .action-info {
@@ -910,7 +910,7 @@ video {
     grid-row: 1;
     grid-column: 3;
     display: flex;
-    gap: 8px;
+    gap: 4px;
     align-items: center;
 }
 
@@ -942,27 +942,34 @@ video {
     filter: drop-shadow(0 0 3px rgba(231, 76, 60, 0.4));
 }
 
-.action-flag-icon {
-
 .action-controls-btns {
-    grid-row: 2;
-    grid-column: 1;
+    grid-row: 1;
+    grid-column: 4;
     display: flex;
     gap: 4px;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
 }
 
+.action-comment-input {
+    grid-row: 2;
+    grid-column: 1 / span 4;
+    padding-top: 5px;
+    border-top: 1px dashed #eee;
+}
+
 .action-controls-btns .btn-play,
+.action-controls-btns .btn-stop,
+.action-controls-btns .btn-comment-toggle,
 .action-controls-btns .btn-delete {
     padding: 2px 6px;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 0.75em;
     transition: all 0.2s;
-    min-width: 24px;
-    height: 24px;
+    min-width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -975,6 +982,29 @@ video {
 
 .action-controls-btns .btn-play:hover {
     background: #229954;
+}
+
+.action-controls-btns .btn-stop {
+    background: #95a5a6;
+    color: white;
+}
+
+.action-controls-btns .btn-stop:hover {
+    background: #7f8c8d;
+}
+
+.action-controls-btns .btn-comment-toggle {
+    background: #3498db;
+    color: white;
+}
+
+.action-controls-btns .btn-comment-toggle.active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    filter: brightness(0.9);
+}
+
+.action-controls-btns .btn-comment-toggle.has-comment {
+    border: 2px solid #2980b9;
 }
 
 .action-controls-btns .btn-delete {
@@ -1078,14 +1108,6 @@ video {
     border-radius: 3px;
     font-family: monospace;
     font-size: 0.9em;
-}
-
-.action-comment-input {
-    flex: 1;
-    width: 100%;
-    display: block;
-    grid-row: 2;
-    grid-column: 2;
 }
 
 .action-comment-input input[type="text"] {

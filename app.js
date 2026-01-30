@@ -969,7 +969,7 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                             title="Positivo" 
                             style="color: #27ae60; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
                             onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'positive')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </button>
@@ -977,17 +977,27 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                             title="Negativo" 
                             style="color: #e74c3c; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
                             onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'negative')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
                 </div>
                 <div class="action-controls-btns">
-                    <button class="btn-play" onclick="playAction('${action.id}')">▶</button>
-                    <button class="btn-delete" onclick="deleteAction('${action.id}')">×</button>
+                    <button class="btn-play" title="Play" onclick="event.stopPropagation(); playAction('${action.id}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </button>
+                    <button class="btn-stop" title="Stop" onclick="event.stopPropagation(); stopAction()" style="background: #95a5a6; color: white;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    </button>
+                    <button class="btn-comment-toggle ${action.comment ? 'has-comment' : ''}" title="Commento" onclick="event.stopPropagation(); window.toggleActionComment('${action.id}')" style="background: #3498db; color: white;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    </button>
+                    <button class="btn-delete" title="Elimina" onclick="event.stopPropagation(); deleteAction('${action.id}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
                 </div>
-                <div class="action-comment-input">
+                <div class="action-comment-input" style="display: none;">
                     <input type="text" placeholder="Aggiungi un commento..." 
                            value="${action.comment || ''}"
                            onchange="updateActionComment('${action.id}', this.value)">
@@ -1480,6 +1490,30 @@ function playAction(actionId) {
     };
     videoPlayer.addEventListener('timeupdate', stopHandler);
 }
+
+function stopAction() {
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.pause();
+}
+
+/**
+ * Toggle della visibilità del commento per un'azione
+ */
+window.toggleActionComment = function(actionId) {
+    const actionItem = document.querySelector(`.action-item[data-action-id="${actionId}"]`);
+    if (!actionItem) return;
+    
+    const commentField = actionItem.querySelector('.action-comment-input');
+    const toggleBtn = actionItem.querySelector('.btn-comment-toggle');
+    
+    if (commentField.style.display === 'none') {
+        commentField.style.display = 'block';
+        toggleBtn.classList.add('active');
+    } else {
+        commentField.style.display = 'none';
+        toggleBtn.classList.remove('active');
+    }
+};
 
 function deleteAction(actionId) {
     if (confirm('Sei sicuro di voler eliminare questa azione?')) {
