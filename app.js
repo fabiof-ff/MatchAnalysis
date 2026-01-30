@@ -472,8 +472,17 @@ function reorderTags() {
         tag.order = index;
     });
     
+    // Reset customOrder quando cambia l'ordine dei tag
+    state.customOrder = [];
+    
     saveTagsToLocalStorage();
+    saveStateToLocalStorage();
+    
+    // Ricarica le azioni per applicare il nuovo ordine
+    renderActions();
+    
     console.log('Tag riordinati:', state.tags.map(t => t.name));
+    showNotification('✅ Ordine tag aggiornato! Gruppi azioni resettati.', 'success', 2000);
 }
 
 function updateTagOffset(tagId, type, value) {
