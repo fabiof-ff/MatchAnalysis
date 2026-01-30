@@ -637,7 +637,7 @@ function renderActions() {
         return;
     }
     
-    // Ordina le azioni in base a customOrder se disponibile, altrimenti per tag
+    // Ordina le azioni in base a customOrder se disponibile, altrimenti per tag order
     let sortedActions;
     if (state.customOrder && state.customOrder.length > 0) {
         // Usa l'ordinamento personalizzato
@@ -649,10 +649,11 @@ function renderActions() {
             return a.startTime - b.startTime;
         });
     } else {
-        // Ordinamento predefinito per tag, poi per tempo
+        // Ordinamento predefinito per tag order, poi per tempo
         sortedActions = [...filteredActions].sort((a, b) => {
-            const tagCompare = a.tag.name.localeCompare(b.tag.name);
-            if (tagCompare !== 0) return tagCompare;
+            const tagOrderA = a.tag.order || 0;
+            const tagOrderB = b.tag.order || 0;
+            if (tagOrderA !== tagOrderB) return tagOrderA - tagOrderB;
             return a.startTime - b.startTime;
         });
     }
@@ -785,21 +786,24 @@ function toggleCollapseAll() {
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
 function renderActionsGroupedByTag(sortedActions, actionsList) {
-    // Raggruppa le azioni per tag
+    // Raggruppa le azioni per tag mantenendo l'ordine di sortedActions
     const groupedByTag = new Map();
+    const tagOrder = []; // Traccia l'ordine di apparizione dei tag
+    
     sortedActions.forEach(action => {
         if (!groupedByTag.has(action.tag.id)) {
             groupedByTag.set(action.tag.id, {
                 tag: action.tag,
                 actions: []
             });
+            tagOrder.push(action.tag.id);
         }
         groupedByTag.get(action.tag.id).actions.push(action);
     });
     
-    // Ordina i gruppi in base all'ordine dei tag
-    const sortedGroups = Array.from(groupedByTag.entries())
-        .sort((a, b) => (a[1].tag.order || 0) - (b[1].tag.order || 0));
+    // I gruppi seguono l'ordine in cui appaiono in sortedActions
+    // (che può essere customOrder o tag.order)
+    const sortedGroups = tagOrder.map(tagId => [tagId, groupedByTag.get(tagId)]);
     
     // Crea i gruppi
     let groupIndex = 0;
