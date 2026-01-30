@@ -171,6 +171,7 @@ function setupActionsListeners() {
     const selectAllBtn = document.getElementById('selectAllBtn');
     const deselectAllBtn = document.getElementById('deselectAllBtn');
     const toggleFilterBtn = document.getElementById('toggleFilterBtn');
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
@@ -180,6 +181,7 @@ function setupActionsListeners() {
         selectAllBtn: !!selectAllBtn,
         deselectAllBtn: !!deselectAllBtn,
         toggleFilterBtn: !!toggleFilterBtn,
+        collapseAllBtn: !!collapseAllBtn,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
@@ -189,6 +191,7 @@ function setupActionsListeners() {
     if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllActions);
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
     if (toggleFilterBtn) toggleFilterBtn.addEventListener('click', toggleFilterPanel);
+    if (collapseAllBtn) collapseAllBtn.addEventListener('click', toggleCollapseAll);
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -754,6 +757,30 @@ function toggleFilterPanel() {
     } else {
         panel.style.display = 'none';
     }
+}
+
+function toggleCollapseAll() {
+    const groups = document.querySelectorAll('.tag-group');
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    
+    // Controlla se ci sono gruppi espansi
+    const hasExpanded = Array.from(groups).some(g => !g.classList.contains('collapsed'));
+    
+    groups.forEach(group => {
+        const toggle = group.querySelector('.collapse-toggle');
+        if (hasExpanded) {
+            // Compatta tutti
+            group.classList.add('collapsed');
+            if (toggle) toggle.textContent = '▶';
+        } else {
+            // Espandi tutti
+            group.classList.remove('collapsed');
+            if (toggle) toggle.textContent = '▼';
+        }
+    });
+    
+    // Aggiorna il testo del pulsante
+    collapseAllBtn.textContent = hasExpanded ? '📂 Espandi Tutti' : '📄 Compatta Tutti';
 }
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
