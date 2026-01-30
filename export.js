@@ -371,18 +371,41 @@ async function exportActionsToFFmpeg() {
         return;
     }
     
-    // Usa l'ordinamento personalizzato se disponibile, altrimenti ordina per tempo
+    // Ordina le azioni selezionate in base alla modalità corrente
     let selectedActionsList;
-    if (state.customOrder && state.customOrder.length > 0) {
-        // Usa l'ordinamento personalizzato
-        selectedActionsList = state.customOrder
-            .map(id => state.actions.find(a => a.id === id))
-            .filter(a => a && state.selectedActions.has(a.id));
-    } else {
-        // Ordinamento predefinito per tempo
-        selectedActionsList = state.actions
-            .filter(a => state.selectedActions.has(a.id))
-            .sort((a, b) => a.startTime - b.startTime);
+    switch (state.sortMode) {
+        case 'custom':
+            // Usa l'ordinamento personalizzato
+            if (state.customOrder && state.customOrder.length > 0) {
+                selectedActionsList = state.customOrder
+                    .map(id => state.actions.find(a => a.id === id))
+                    .filter(a => a && state.selectedActions.has(a.id));
+            } else {
+                // Fallback a ordinamento per tempo
+                selectedActionsList = state.actions
+                    .filter(a => state.selectedActions.has(a.id))
+                    .sort((a, b) => a.startTime - b.startTime);
+            }
+            break;
+            
+        case 'tag':
+            // Raggruppa per tag, poi ordina per tempo dentro ogni gruppo
+            selectedActionsList = state.actions
+                .filter(a => state.selectedActions.has(a.id))
+                .sort((a, b) => {
+                    const tagCompare = a.tag.name.localeCompare(b.tag.name);
+                    if (tagCompare !== 0) return tagCompare;
+                    return a.startTime - b.startTime;
+                });
+            break;
+            
+        case 'time':
+        default:
+            // Ordinamento predefinito per tempo
+            selectedActionsList = state.actions
+                .filter(a => state.selectedActions.has(a.id))
+                .sort((a, b) => a.startTime - b.startTime);
+            break;
     }
     
     // Generate FFmpeg commands

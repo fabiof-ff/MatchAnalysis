@@ -67,8 +67,12 @@
                         <!-- I checkbox per i tag appariranno qui -->
                     </div>
                 </div>
+                <select id="sortOrderSelect" style="padding: 12px; border-radius: 5px; border: 2px solid #3498db; font-weight: 600; cursor: pointer;">
+                    <option value="time">⏱️ Ordina per Tempo</option>
+                    <option value="tag">🏷️ Raggruppa per Tag</option>
+                    <option value="custom">🔀 Ordine Personalizzato</option>
+                </select>
                 <button id="deleteSelectedBtn">Elimina Selezionati</button>
-                <button id="reorderSelectedBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">🔀 Riordina Selezionate</button>
                 <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
                 <button id="exportJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta JSON</button>
                 <label for="importJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">

@@ -11,7 +11,8 @@ const state = {
     markedEnd: null,
     selectedActions: new Set(),
     filterTags: new Set(), // Filtro multiplo per tag
-    customOrder: [] // Ordinamento personalizzato delle azioni selezionate
+    customOrder: [], // Ordinamento personalizzato delle azioni selezionate
+    sortMode: 'time' // Modalità di ordinamento: 'time', 'tag', 'custom'
 };
 
 // Initialize App
@@ -26,6 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderActions();
     // IMPORTANTE: setupActionsListeners DOPO il rendering
     setupActionsListeners();
+    // Sincronizza il dropdown con lo stato
+    const sortOrderSelect = document.getElementById('sortOrderSelect');
+    if (sortOrderSelect) {
+        sortOrderSelect.value = state.sortMode;
+    }
     console.log('App inizializzata - Tags:', state.tags.length);
 });
 
@@ -171,7 +177,7 @@ function setupActionsListeners() {
     const selectAllBtn = document.getElementById('selectAllBtn');
     const deselectAllBtn = document.getElementById('deselectAllBtn');
     const toggleFilterBtn = document.getElementById('toggleFilterBtn');
-    const reorderSelectedBtn = document.getElementById('reorderSelectedBtn');
+    const sortOrderSelect = document.getElementById('sortOrderSelect');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
@@ -181,7 +187,7 @@ function setupActionsListeners() {
         selectAllBtn: !!selectAllBtn,
         deselectAllBtn: !!deselectAllBtn,
         toggleFilterBtn: !!toggleFilterBtn,
-        reorderSelectedBtn: !!reorderSelectedBtn,
+        sortOrderSelect: !!sortOrderSelect,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
@@ -191,7 +197,7 @@ function setupActionsListeners() {
     if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllActions);
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
     if (toggleFilterBtn) toggleFilterBtn.addEventListener('click', toggleFilterPanel);
-    if (reorderSelectedBtn) reorderSelectedBtn.addEventListener('click', openReorderModal);
+    if (sortOrderSelect) sortOrderSelect.addEventListener('change', (e) => changeSortMode(e.target.value));
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -637,20 +643,41 @@ function renderActions() {
         return;
     }
     
-    // Usa l'ordinamento personalizzato se disponibile, altrimenti ordina per tempo
+    // Ordina le azioni in base alla modalità selezionata
     let sortedActions;
-    if (state.customOrder && state.customOrder.length > 0) {
-        // Usa l'ordinamento personalizzato
-        const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
-        sortedActions = [...filteredActions].sort((a, b) => {
-            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
-            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
-            if (orderA !== orderB) return orderA - orderB;
-            return a.startTime - b.startTime;
-        });
-    } else {
-        // Ordinamento predefinito per tempo
-        sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
+    switch (state.sortMode) {
+        case 'custom':
+            // Usa l'ordinamento personalizzato
+            if (state.customOrder && state.customOrder.length > 0) {
+                const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
+                sortedActions = [...filteredActions].sort((a, b) => {
+                    const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+                    const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+                    if (orderA !== orderB) return orderA - orderB;
+                    return a.startTime - b.startTime;
+                });
+            } else {
+                // Fallback a ordinamento per tempo se customOrder è vuoto
+                sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
+            }
+            break;
+            
+        case 'tag':
+            // Raggruppa per tag, poi ordina per tempo dentro ogni gruppo
+            sortedActions = [...filteredActions].sort((a, b) => {
+                // Prima compara per nome del tag
+                const tagCompare = a.tag.name.localeCompare(b.tag.name);
+                if (tagCompare !== 0) return tagCompare;
+                // Se stesso tag, ordina per tempo
+                return a.startTime - b.startTime;
+            });
+            break;
+            
+        case 'time':
+        default:
+            // Ordinamento predefinito per tempo
+            sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
+            break;
     }
     
     sortedActions.forEach(action => {
@@ -733,6 +760,13 @@ function saveActionsOrder() {
     
     // Crea un nuovo ordine personalizzato basato sulla posizione corrente
     state.customOrder = Array.from(items).map(item => item.dataset.actionId);
+    state.sortMode = 'custom'; // Imposta modalità custom quando si riordina manualmente
+    
+    // Aggiorna il dropdown
+    const sortOrderSelect = document.getElementById('sortOrderSelect');
+    if (sortOrderSelect) {
+        sortOrderSelect.value = 'custom';
+    }
     
     showNotification('✅ Ordine aggiornato! Verrà usato nell\'export.', 'success', 2000);
 }
@@ -744,6 +778,12 @@ function toggleFilterPanel() {
     } else {
         panel.style.display = 'none';
     }
+}
+
+function changeSortMode(mode) {
+    state.sortMode = mode;
+    renderActions();
+    console.log('Modalità ordinamento cambiata:', mode);
 }
 
 function populateTagFilter() {
