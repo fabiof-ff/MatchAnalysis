@@ -337,7 +337,7 @@ video {
     background: #f8f9fa;
     border-radius: 10px;
     padding: 15px;
-    height: 100%;
+    max-height: calc(100vh - 110px);
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Garantisce lo scroll interno */
