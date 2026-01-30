@@ -665,6 +665,28 @@ video {
     font-weight: 500;
 }
 
+.tag-group-header .collapse-toggle {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: transform 0.2s, color 0.2s;
+    user-select: none;
+}
+
+.tag-group-header .collapse-toggle:hover {
+    color: #2c3e50;
+    transform: scale(1.2);
+}
+
+.tag-group.collapsed .tag-group-actions {
+    display: none;
+}
+
+.tag-group.collapsed .tag-group-header {
+    border-bottom: none;
+}
+
 .tag-group-actions {
     padding: 12px;
 }

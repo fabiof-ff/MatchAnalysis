@@ -788,7 +788,16 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
             <span class="drag-handle">⋮⋮</span>
             <span class="group-tag-name" style="color: ${group.tag.color}; font-weight: 600;">${group.tag.name}</span>
             <span class="group-count">(${group.actions.length} azioni)</span>
+            <span class="collapse-toggle">▼</span>
         `;
+        
+        // Click per collapse/expand
+        const collapseToggle = groupHeader.querySelector('.collapse-toggle');
+        collapseToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            groupContainer.classList.toggle('collapsed');
+            collapseToggle.textContent = groupContainer.classList.contains('collapsed') ? '▶' : '▼';
+        });
         
         // Drag and drop per il gruppo intero
         groupHeader.addEventListener('dragstart', (e) => {
@@ -814,6 +823,7 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
             actionItem.className = 'action-item action-in-group';
             actionItem.draggable = true;
             actionItem.dataset.actionId = action.id;
+            actionItem.style.borderLeftColor = action.tag.color;
             
             if (state.selectedActions.has(action.id)) {
                 actionItem.classList.add('selected-action');
