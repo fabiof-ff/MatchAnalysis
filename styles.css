@@ -684,7 +684,7 @@ video {
 }
 
 .action-item.action-in-group {
-    cursor: default;
+    cursor: move;
     margin-bottom: 8px;
 }
 

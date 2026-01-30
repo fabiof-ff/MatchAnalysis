@@ -11,8 +11,7 @@ const state = {
     markedEnd: null,
     selectedActions: new Set(),
     filterTags: new Set(), // Filtro multiplo per tag
-    customOrder: [], // Ordinamento personalizzato delle azioni selezionate
-    sortMode: 'time' // Modalità di ordinamento: 'time', 'tag', 'custom'
+    customOrder: [] // Ordinamento personalizzato delle azioni selezionate
 };
 
 // Initialize App
@@ -27,11 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderActions();
     // IMPORTANTE: setupActionsListeners DOPO il rendering
     setupActionsListeners();
-    // Sincronizza il dropdown con lo stato
-    const sortOrderSelect = document.getElementById('sortOrderSelect');
-    if (sortOrderSelect) {
-        sortOrderSelect.value = state.sortMode;
-    }
     console.log('App inizializzata - Tags:', state.tags.length);
 });
 
@@ -177,7 +171,6 @@ function setupActionsListeners() {
     const selectAllBtn = document.getElementById('selectAllBtn');
     const deselectAllBtn = document.getElementById('deselectAllBtn');
     const toggleFilterBtn = document.getElementById('toggleFilterBtn');
-    const sortOrderSelect = document.getElementById('sortOrderSelect');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
@@ -187,7 +180,6 @@ function setupActionsListeners() {
         selectAllBtn: !!selectAllBtn,
         deselectAllBtn: !!deselectAllBtn,
         toggleFilterBtn: !!toggleFilterBtn,
-        sortOrderSelect: !!sortOrderSelect,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
@@ -197,7 +189,6 @@ function setupActionsListeners() {
     if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllActions);
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
     if (toggleFilterBtn) toggleFilterBtn.addEventListener('click', toggleFilterPanel);
-    if (sortOrderSelect) sortOrderSelect.addEventListener('change', (e) => changeSortMode(e.target.value));
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -643,50 +634,32 @@ function renderActions() {
         return;
     }
     
-    // Ordina le azioni in base alla modalità selezionata
+    // Ordina le azioni in base a customOrder se disponibile, altrimenti per tag
     let sortedActions;
-    switch (state.sortMode) {
-        case 'custom':
-            // Usa l'ordinamento personalizzato
-            if (state.customOrder && state.customOrder.length > 0) {
-                const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
-                sortedActions = [...filteredActions].sort((a, b) => {
-                    const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
-                    const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
-                    if (orderA !== orderB) return orderA - orderB;
-                    return a.startTime - b.startTime;
-                });
-            } else {
-                // Fallback a ordinamento per tempo se customOrder è vuoto
-                sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
-            }
-            break;
-            
-        case 'tag':
-            // Raggruppa per tag, poi ordina per tempo dentro ogni gruppo
-            sortedActions = [...filteredActions].sort((a, b) => {
-                // Prima compara per nome del tag
-                const tagCompare = a.tag.name.localeCompare(b.tag.name);
-                if (tagCompare !== 0) return tagCompare;
-                // Se stesso tag, ordina per tempo
-                return a.startTime - b.startTime;
-            });
-            break;
-            
-        case 'time':
-        default:
-            // Ordinamento predefinito per tempo
-            sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
-            break;
+    if (state.customOrder && state.customOrder.length > 0) {
+        // Usa l'ordinamento personalizzato
+        const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.startTime - b.startTime;
+        });
+    } else {
+        // Ordinamento predefinito per tag, poi per tempo
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const tagCompare = a.tag.name.localeCompare(b.tag.name);
+            if (tagCompare !== 0) return tagCompare;
+            return a.startTime - b.startTime;
+        });
     }
     
-    // Se modalità tag, raggruppa le azioni per tag
-    if (state.sortMode === 'tag') {
-        renderActionsGroupedByTag(sortedActions, actionsList);
-        return;
-    }
-    
-    // Altrimenti rendering normale con singole azioni draggable
+    // Mostra sempre i gruppi
+    renderActionsGroupedByTag(sortedActions, actionsList);
+}
+
+function renderActionsSingleMode(sortedActions, actionsList) {
+    // Funzione legacy per rendering singolo (non più usata)
     sortedActions.forEach(action => {
         const actionItem = document.createElement('div');
         actionItem.className = 'action-item';
@@ -767,13 +740,6 @@ function saveActionsOrder() {
     
     // Crea un nuovo ordine personalizzato basato sulla posizione corrente
     state.customOrder = Array.from(items).map(item => item.dataset.actionId);
-    state.sortMode = 'custom'; // Imposta modalità custom quando si riordina manualmente
-    
-    // Aggiorna il dropdown
-    const sortOrderSelect = document.getElementById('sortOrderSelect');
-    if (sortOrderSelect) {
-        sortOrderSelect.value = 'custom';
-    }
     
     // Salva nel localStorage
     saveStateToLocalStorage();
@@ -788,13 +754,6 @@ function toggleFilterPanel() {
     } else {
         panel.style.display = 'none';
     }
-}
-
-function changeSortMode(mode) {
-    state.sortMode = mode;
-    saveStateToLocalStorage();
-    renderActions();
-    console.log('Modalità ordinamento cambiata:', mode);
 }
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
@@ -853,6 +812,7 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
         group.actions.forEach(action => {
             const actionItem = document.createElement('div');
             actionItem.className = 'action-item action-in-group';
+            actionItem.draggable = true;
             actionItem.dataset.actionId = action.id;
             
             if (state.selectedActions.has(action.id)) {
@@ -884,8 +844,24 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 </div>
             `;
             
+            // Drag and drop per singola azione
+            actionItem.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                actionItem.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', action.id);
+            });
+            
+            actionItem.addEventListener('dragend', (e) => {
+                actionItem.classList.remove('dragging');
+            });
+            
             actionsContainer.appendChild(actionItem);
         });
+        
+        // Gestione drag-over per azioni all'interno del gruppo
+        actionsContainer.addEventListener('dragover', (e) => handleActionDragOver(e, actionsContainer));
+        actionsContainer.addEventListener('drop', (e) => handleActionDrop(e, actionsContainer));
         
         groupContainer.appendChild(actionsContainer);
         actionsList.appendChild(groupContainer);
@@ -919,33 +895,12 @@ function handleGroupDrop(e) {
     e.preventDefault();
     e.stopPropagation();
     
-    // Salva il nuovo ordine dei gruppi
-    const actionsList = document.getElementById('actionsList');
-    const groups = Array.from(actionsList.querySelectorAll('.tag-group'));
+    // Salva il nuovo ordine completo
+    saveCompleteActionsOrder();
     
-    // Crea un nuovo ordine basato sui gruppi
-    state.customOrder = [];
-    groups.forEach(group => {
-        const actionsInGroup = group.querySelectorAll('.action-item[data-action-id]');
-        actionsInGroup.forEach(item => {
-            state.customOrder.push(item.dataset.actionId);
-        });
-    });
+    showNotification('✅ Gruppi riordinati!', 'success', 2000);
     
-    // Passa a modalità custom
-    state.sortMode = 'custom';
-    const sortOrderSelect = document.getElementById('sortOrderSelect');
-    if (sortOrderSelect) {
-        sortOrderSelect.value = 'custom';
-    }
-    
-    // Salva lo stato
-    saveStateToLocalStorage();
-    
-    console.log('Nuovo ordine personalizzato salvato:', state.customOrder);
-    showNotification('✅ Gruppi riordinati! Modalità cambiata a Ordine Personalizzato.', 'success', 2500);
-    
-    // Re-render con il nuovo ordine (non in modalità tag, ma custom)
+    // Re-render con il nuovo ordine
     setTimeout(() => {
         renderActions();
     }, 100);
@@ -965,6 +920,61 @@ function getDragAfterElementGroup(y) {
             return closest;
         }
     }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function handleActionDragOver(e, container) {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggingAction = document.querySelector('.action-item.dragging');
+    if (!draggingAction) return;
+    
+    const afterElement = getDragAfterElementAction(container, e.clientY);
+    
+    if (afterElement == null) {
+        container.appendChild(draggingAction);
+    } else {
+        container.insertBefore(draggingAction, afterElement);
+    }
+}
+
+function handleActionDrop(e, container) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Salva il nuovo ordine completo di tutte le azioni
+    saveCompleteActionsOrder();
+}
+
+function getDragAfterElementAction(container, y) {
+    const draggableElements = [...container.querySelectorAll('.action-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function saveCompleteActionsOrder() {
+    // Raccogli tutte le azioni nell'ordine attuale del DOM
+    const actionsList = document.getElementById('actionsList');
+    const allGroups = actionsList.querySelectorAll('.tag-group');
+    
+    state.customOrder = [];
+    allGroups.forEach(group => {
+        const actionsInGroup = group.querySelectorAll('.action-item[data-action-id]');
+        actionsInGroup.forEach(item => {
+            state.customOrder.push(item.dataset.actionId);
+        });
+    });
+    
+    saveStateToLocalStorage();
+    console.log('Ordine completo salvato:', state.customOrder);
 }
 
 function populateTagFilter() {
@@ -1406,13 +1416,6 @@ function loadActionsFromLocalStorage() {
             state.customOrder = JSON.parse(savedOrder);
             console.log('Ordine personalizzato caricato:', state.customOrder.length);
         }
-        
-        // Carica sortMode
-        const savedSortMode = localStorage.getItem('matchAnalysisSortMode');
-        if (savedSortMode) {
-            state.sortMode = savedSortMode;
-            console.log('Modalità ordinamento caricata:', state.sortMode);
-        }
     } catch (e) {
         console.error('Errore nel caricamento azioni:', e);
     }
@@ -1423,7 +1426,6 @@ function saveStateToLocalStorage() {
     try {
         localStorage.setItem('matchAnalysisActions', JSON.stringify(state.actions));
         localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
-        localStorage.setItem('matchAnalysisSortMode', state.sortMode);
     } catch (e) {
         console.error('Errore nel salvataggio azioni:', e);
     }
