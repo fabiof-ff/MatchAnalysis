@@ -392,9 +392,10 @@ function renderTags() {
         tagItem.innerHTML = `
             <div class="tag-header">
                 <span class="tag-name">${tag.name}</span>
+                <button class="settings-tag" onclick="toggleTagSettings('${tag.id}', event)">⚙</button>
                 ${deleteBtn}
             </div>
-            <div class="tag-offset">
+            <div class="tag-offset" style="display: none;">
                 <label>-<input type="number" class="offset-input" value="${tag.offsetBefore}" min="0" max="30" data-tag-id="${tag.id}" data-type="before"> sec</label>
                 <label>+<input type="number" class="offset-input" value="${tag.offsetAfter}" min="0" max="30" data-tag-id="${tag.id}" data-type="after"> sec</label>
             </div>
@@ -402,7 +403,9 @@ function renderTags() {
         
         // Click per creare azione
         tagItem.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('delete-tag') && !e.target.classList.contains('offset-input')) {
+            if (!e.target.classList.contains('delete-tag') && 
+                !e.target.classList.contains('settings-tag') && 
+                !e.target.classList.contains('offset-input')) {
                 createActionFromTag(tag);
             }
         });
@@ -480,6 +483,18 @@ function reorderTags() {
     
     console.log('Tag riordinati:', state.tags.map(t => t.name));
     showNotification('✅ Ordine tag aggiornato! Gruppi azioni resettati.', 'success', 2000);
+}
+
+function toggleTagSettings(tagId, event) {
+    event.stopPropagation();
+    const tagItem = document.querySelector(`[data-tag-id="${tagId}"]`);
+    if (tagItem) {
+        const offsetDiv = tagItem.querySelector('.tag-offset');
+        if (offsetDiv) {
+            const isVisible = offsetDiv.style.display !== 'none';
+            offsetDiv.style.display = isVisible ? 'none' : 'flex';
+        }
+    }
 }
 
 function updateTagOffset(tagId, type, value) {
