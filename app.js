@@ -11,7 +11,8 @@ const state = {
     markedEnd: null,
     selectedActions: new Set(),
     filterTags: new Set(), // Filtro multiplo per tag
-    customOrder: [] // Ordinamento personalizzato delle azioni selezionate
+    customOrder: [], // Ordinamento personalizzato delle azioni selezionate
+    activeAction: null // Azione attualmente controllata dallo slider
 };
 
 // Initialize App
@@ -129,6 +130,46 @@ function setupEventListeners() {
         });
     }
     if (exportMergeBtn) exportMergeBtn.addEventListener('click', exportMergeScript);
+    
+    // Main Action Sliders
+    const startTimeSlider = document.getElementById('startTimeSlider');
+    const endTimeSlider = document.getElementById('endTimeSlider');
+    
+    if (startTimeSlider) {
+        startTimeSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (videoPlayer && videoPlayer.src) {
+                videoPlayer.currentTime = value;
+            }
+            updateSliderDisplay('start', value);
+        });
+        
+        startTimeSlider.addEventListener('change', (e) => {
+            const value = parseFloat(e.target.value);
+            if (state.activeAction) {
+                updateActionTime(state.activeAction.id, 'start', value);
+            }
+        });
+    }
+    
+    if (endTimeSlider) {
+        endTimeSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (videoPlayer && videoPlayer.src) {
+                videoPlayer.currentTime = value;
+            }
+            updateSliderDisplay('end', value);
+        });
+        
+        endTimeSlider.addEventListener('change', (e) => {
+            const value = parseFloat(e.target.value);
+            if (state.activeAction) {
+                updateActionTime(state.activeAction.id, 'end', value);
+            }
+        });
+    }
     
     // Compress Video
     const selectCompressVideoBtn = document.getElementById('selectCompressVideoBtn');
@@ -887,6 +928,9 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
             if (state.selectedActions.has(action.id)) {
                 actionItem.classList.add('selected-action');
             }
+            if (state.activeAction && state.activeAction.id === action.id) {
+                actionItem.classList.add('active-action');
+            }
             
             actionItem.innerHTML = `
                 <input type="checkbox" class="action-checkbox" 
@@ -895,14 +939,6 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 <div class="action-info">
                     <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
                     <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
-                    <div class="action-duration-input">
-                        <span>Inizio:</span>
-                        <input type="number" step="0.1" value="${action.startTime.toFixed(1)}" 
-                               onchange="updateActionTime('${action.id}', 'start', this.value)">
-                        <span>Fine:</span>
-                        <input type="number" step="0.1" value="${action.endTime.toFixed(1)}" 
-                               onchange="updateActionTime('${action.id}', 'end', this.value)">
-                    </div>
                     <div class="action-comment-input">
                         <input type="text" placeholder="Aggiungi un commento..." 
                                value="${action.comment || ''}"
@@ -914,6 +950,15 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                     <button class="btn-delete" onclick="deleteAction('${action.id}')">×</button>
                 </div>
             `;
+            
+            // Click per attivare l'azione e controllare gli slider
+            actionItem.addEventListener('click', (e) => {
+                // Ignora click su checkbox, input e button
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+                    return;
+                }
+                setActiveAction(action);
+            });
             
             // Drag and drop per singola azione
             actionItem.addEventListener('dragstart', (e) => {
@@ -1288,8 +1333,83 @@ function updateActionTime(actionId, type, value) {
     
     action.duration = action.endTime - action.startTime;
     
+    // Se questa è l'azione attiva, aggiorna anche gli slider
+    if (state.activeAction && state.activeAction.id === actionId) {
+        state.activeAction = action;
+        updateMainSliders();
+    }
+    
     renderActions();
     saveStateToLocalStorage();
+}
+
+function setActiveAction(action) {
+    state.activeAction = action;
+    renderActions();
+    updateMainSliders();
+}
+
+function updateMainSliders() {
+    if (!state.activeAction) {
+        document.getElementById('actionSliderContainer').style.display = 'none';
+        return;
+    }
+    
+    const videoPlayer = document.getElementById('videoPlayer');
+    const maxDuration = videoPlayer && videoPlayer.duration ? videoPlayer.duration : 3600;
+    const rangeBuffer = 30;
+    
+    const action = state.activeAction;
+    const startMin = Math.max(0, action.startTime - rangeBuffer);
+    const startMax = Math.min(maxDuration, action.startTime + rangeBuffer);
+    const endMin = Math.max(0, action.endTime - rangeBuffer);
+    const endMax = Math.min(maxDuration, action.endTime + rangeBuffer);
+    
+    const container = document.getElementById('actionSliderContainer');
+    const startSlider = document.getElementById('startTimeSlider');
+    const endSlider = document.getElementById('endTimeSlider');
+    const actionName = document.getElementById('activeActionName');
+    
+    container.style.display = 'block';
+    actionName.textContent = `${action.tag.name} - ${formatTime(action.startTime)} → ${formatTime(action.endTime)}`;
+    
+    startSlider.min = startMin;
+    startSlider.max = startMax;
+    startSlider.value = action.startTime;
+    
+    endSlider.min = endMin;
+    endSlider.max = endMax;
+    endSlider.value = action.endTime;
+    
+    updateSliderDisplay('start', action.startTime);
+    updateSliderDisplay('end', action.endTime);
+}
+
+function updateSliderDisplay(type, value) {
+    const displayId = type === 'start' ? 'startTimeDisplay' : 'endTimeDisplay';
+    const display = document.getElementById(displayId);
+    if (display) {
+        display.textContent = formatTime(value);
+    }
+}
+
+function updateActionTimeDisplay(actionId) {
+    const action = state.actions.find(a => a.id === actionId);
+    if (!action) return;
+    
+    // Trova gli slider per questa azione
+    const actionElement = document.querySelector(`[data-action-id="${actionId}"]`)?.closest('.action-item');
+    if (!actionElement) return;
+    
+    const startSlider = actionElement.querySelector('.time-slider[data-type="start"]');
+    const endSlider = actionElement.querySelector('.time-slider[data-type="end"]');
+    const timeDisplay = actionElement.querySelector(`#time-${actionId}`);
+    
+    if (startSlider && endSlider && timeDisplay) {
+        const startTime = parseFloat(startSlider.value);
+        const endTime = parseFloat(endSlider.value);
+        timeDisplay.textContent = `${formatTime(startTime)} - ${formatTime(endTime)}`;
+    }
 }
 
 function updateActionComment(actionId, comment) {
