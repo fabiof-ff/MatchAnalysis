@@ -775,6 +775,9 @@ function saveActionsOrder() {
         sortOrderSelect.value = 'custom';
     }
     
+    // Salva nel localStorage
+    saveStateToLocalStorage();
+    
     showNotification('✅ Ordine aggiornato! Verrà usato nell\'export.', 'success', 2000);
 }
 
@@ -789,6 +792,7 @@ function toggleFilterPanel() {
 
 function changeSortMode(mode) {
     state.sortMode = mode;
+    saveStateToLocalStorage();
     renderActions();
     console.log('Modalità ordinamento cambiata:', mode);
 }
@@ -931,10 +935,15 @@ function handleGroupDrop(e) {
         sortOrderSelect.value = 'custom';
     }
     
+    // Salva lo stato
+    saveStateToLocalStorage();
+    
     showNotification('✅ Gruppi riordinati! Modalità cambiata a Ordine Personalizzato.', 'success', 2500);
     
-    // Re-render con il nuovo ordine
-    renderActions();
+    // Re-render con il nuovo ordine (non in modalità tag, ma custom)
+    setTimeout(() => {
+        renderActions();
+    }, 100);
 }
 
 function getDragAfterElementGroup(y) {
@@ -1385,6 +1394,20 @@ function loadActionsFromLocalStorage() {
             state.actions = JSON.parse(saved);
             console.log('Azioni caricate:', state.actions.length);
         }
+        
+        // Carica customOrder
+        const savedOrder = localStorage.getItem('matchAnalysisCustomOrder');
+        if (savedOrder) {
+            state.customOrder = JSON.parse(savedOrder);
+            console.log('Ordine personalizzato caricato:', state.customOrder.length);
+        }
+        
+        // Carica sortMode
+        const savedSortMode = localStorage.getItem('matchAnalysisSortMode');
+        if (savedSortMode) {
+            state.sortMode = savedSortMode;
+            console.log('Modalità ordinamento caricata:', state.sortMode);
+        }
     } catch (e) {
         console.error('Errore nel caricamento azioni:', e);
     }
@@ -1394,6 +1417,8 @@ function saveStateToLocalStorage() {
     saveTagsToLocalStorage();
     try {
         localStorage.setItem('matchAnalysisActions', JSON.stringify(state.actions));
+        localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
+        localStorage.setItem('matchAnalysisSortMode', state.sortMode);
     } catch (e) {
         console.error('Errore nel salvataggio azioni:', e);
     }
