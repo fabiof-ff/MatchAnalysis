@@ -13,6 +13,14 @@
             <p>Analisi Video di Match Calcio</p>
         </header>
 
+        <!-- Tabs Navigation -->
+        <div class="tabs-navigation">
+            <button class="tab-btn active" data-tab="analysis">📊 Analisi Video</button>
+            <button class="tab-btn" data-tab="tools">🛠️ Strumenti Video</button>
+        </div>
+
+        <!-- Tab: Analisi Video -->
+        <div class="tab-content active" id="analysis-tab">
         <div class="main-content">
             <!-- Sezione Video Player -->
             <div class="video-section">
@@ -55,8 +63,31 @@
             </div>
         </div>
 
+        <!-- Albero delle Azioni Taggate -->
+        <div class="tagged-actions-section" style="margin: 20px;">
+            <h2>Azioni Taggate</h2>
+            <div class="actions-toolbar">
+                <button id="deleteSelectedBtn">Elimina Selezionati</button>
+                <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
+                <button id="exportJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta JSON</button>
+                <label for="importJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
+                    📂 Importa JSON
+                    <input type="file" id="importJSONInput" accept=".json" style="display: none;">
+                </label>
+            </div>
+            <div id="actionsList" class="actions-list">
+                <!-- Le azioni taggate appariranno qui -->
+            </div>
+        </div>
+
+        </div>
+        <!-- Fine Tab Analisi Video -->
+
+        <!-- Tab: Strumenti Video -->
+        <div class="tab-content" id="tools-tab">
+        
         <!-- Sezione Merge Video -->
-        <div class="merge-section">
+        <div class="merge-section" style="margin: 20px;">
             <h2>🎬 Merge Video Multipli</h2>
             <p class="merge-description">Unisci più file video in un unico file (es. primo tempo + secondo tempo)</p>
             <div class="merge-controls">
@@ -104,23 +135,9 @@
                 <!-- Info video da comprimere -->
             </div>
         </div>
-
-        <!-- Albero delle Azioni Taggate -->
-        <div class="tagged-actions-section">
-            <h2>Azioni Taggate</h2>
-            <div class="actions-toolbar">
-                <button id="deleteSelectedBtn">Elimina Selezionati</button>
-                <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
-                <button id="exportJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta JSON</button>
-                <label for="importJSONInput" class="import-btn" style="background: linear-gradient(135deg, #16a085, #138d75); color: white; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-block;">
-                    📂 Importa JSON
-                    <input type="file" id="importJSONInput" accept=".json" style="display: none;">
-                </label>
-            </div>
-            <div id="actionsList" class="actions-list">
-                <!-- Le azioni taggate appariranno qui -->
-            </div>
+        
         </div>
+        <!-- Fine Tab Strumenti Video -->
 
     </div>
 

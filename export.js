@@ -302,7 +302,22 @@ echo.
     // Extract each segment
     selectedActionsList.forEach((action, i) => {
         ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
-        ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -c copy -avoid_negative_ts 1 segment_${i}.mp4\n`;
+        if (action.comment && action.comment.trim()) {
+            ffmpegScript += `echo    Commento: ${action.comment.replace(/["|']/g, '')}\n`;
+        }
+        
+        // Escape special characters for drawtext filter
+        const commentText = action.comment && action.comment.trim() 
+            ? action.comment.replace(/[:\\]/g, '\\$&').replace(/'/g, '').replace(/"/g, '') 
+            : '';
+        
+        if (commentText) {
+            // Extract with text overlay
+            ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -vf "drawtext=text='${commentText}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=(w-text_w)/2:y=h-th-30" -c:v libx264 -preset fast -crf 23 -c:a copy segment_${i}.mp4\n`;
+        } else {
+            // Extract without overlay (copy codec for speed)
+            ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -c copy -avoid_negative_ts 1 segment_${i}.mp4\n`;
+        }
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
@@ -328,6 +343,15 @@ echo.
     
     // Success
     ffmpegScript += `echo.\necho ========================================\necho   Video creato con successo!\necho ========================================\necho.\necho File: %OUTPUT_VIDEO%\necho.\n`;
+    ffmpegScript += `echo Clip incluse:\n`;
+    selectedActionsList.forEach((action, i) => {
+        ffmpegScript += `echo   ${i+1}. ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
+        if (action.comment && action.comment.trim()) {
+            ffmpegScript += ` - ${action.comment.replace(/["|']/g, '')}`;
+        }
+        ffmpegScript += `\n`;
+    });
+    ffmpegScript += `echo.\n`;
     ffmpegScript += `explorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
     
     // Error handling

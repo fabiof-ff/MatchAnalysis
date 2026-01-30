@@ -15,7 +15,9 @@ const state = {
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     initializeDefaultTags();
+    setupTabs();
     setupEventListeners();
+    setupActionsListeners();
     loadStateFromLocalStorage();
     renderTags();
     renderActions();
@@ -41,67 +43,155 @@ function initializeDefaultTags() {
 // Event Listeners Setup
 function setupEventListeners() {
     // Video Loading
-    document.getElementById('loadVideoBtn').addEventListener('click', loadVideo);
-    document.getElementById('videoInput').addEventListener('change', handleVideoFileSelect);
+    const loadVideoBtn = document.getElementById('loadVideoBtn');
+    const videoInput = document.getElementById('videoInput');
+    if (loadVideoBtn) loadVideoBtn.addEventListener('click', loadVideo);
+    if (videoInput) videoInput.addEventListener('change', handleVideoFileSelect);
     
     // Video Player Events
     const videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.addEventListener('timeupdate', updateVideoTime);
-    videoPlayer.addEventListener('loadedmetadata', () => {
-        updateDuration();
-    });
+    if (videoPlayer) {
+        videoPlayer.addEventListener('timeupdate', updateVideoTime);
+        videoPlayer.addEventListener('loadedmetadata', () => {
+            updateDuration();
+        });
+    }
     
     // Tag Management
-    document.getElementById('addTagBtn').addEventListener('click', addNewTag);
-    document.getElementById('newTagName').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addNewTag();
-    });
+    const addTagBtn = document.getElementById('addTagBtn');
+    const newTagName = document.getElementById('newTagName');
+    if (addTagBtn) addTagBtn.addEventListener('click', addNewTag);
+    if (newTagName) {
+        newTagName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addNewTag();
+        });
+    }
     
     // Action Marking
-    document.getElementById('markStartBtn').addEventListener('click', markStart);
-    document.getElementById('markEndBtn').addEventListener('click', markEnd);
-    
-    // Actions Management
-    document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedActions);
-    document.getElementById('exportFFmpegBtn').addEventListener('click', exportActionsToFFmpeg);
-    document.getElementById('exportJSONBtn').addEventListener('click', exportActionsToJSON);
-    document.getElementById('importJSONInput').addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            importActionsFromJSON(e.target.files[0]);
-        }
-    });
+    const markStartBtn = document.getElementById('markStartBtn');
+    const markEndBtn = document.getElementById('markEndBtn');
+    if (markStartBtn) markStartBtn.addEventListener('click', markStart);
+    if (markEndBtn) markEndBtn.addEventListener('click', markEnd);
     
     // Merge Videos
-    document.getElementById('selectMergeVideosBtn').addEventListener('click', () => {
-        document.getElementById('mergeVideosInput').click();
-    });
-    document.getElementById('mergeVideosInput').addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            selectMergeVideos(e.target.files);
-        }
-    });
-    document.getElementById('exportMergeBtn').addEventListener('click', exportMergeScript);
+    const selectMergeVideosBtn = document.getElementById('selectMergeVideosBtn');
+    const mergeVideosInput = document.getElementById('mergeVideosInput');
+    const exportMergeBtn = document.getElementById('exportMergeBtn');
+    
+    if (selectMergeVideosBtn) {
+        selectMergeVideosBtn.addEventListener('click', () => {
+            if (mergeVideosInput) mergeVideosInput.click();
+        });
+    }
+    if (mergeVideosInput) {
+        mergeVideosInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectMergeVideos(e.target.files);
+            }
+        });
+    }
+    if (exportMergeBtn) exportMergeBtn.addEventListener('click', exportMergeScript);
     
     // Compress Video
-    document.getElementById('selectCompressVideoBtn').addEventListener('click', () => {
-        document.getElementById('compressVideoInput').click();
-    });
-    document.getElementById('compressVideoInput').addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            selectCompressVideo(e.target.files[0]);
-        }
-    });
-    document.getElementById('compressionQuality').addEventListener('change', () => {
-        if (compressState.videoToCompress) renderCompressVideoInfo();
-    });
-    document.getElementById('compressionResolution').addEventListener('change', () => {
-        if (compressState.videoToCompress) renderCompressVideoInfo();
-    });
-    document.getElementById('exportCompressBtn').addEventListener('click', exportCompressScript);
+    const selectCompressVideoBtn = document.getElementById('selectCompressVideoBtn');
+    const compressVideoInput = document.getElementById('compressVideoInput');
+    const compressionQuality = document.getElementById('compressionQuality');
+    const compressionResolution = document.getElementById('compressionResolution');
+    const exportCompressBtn = document.getElementById('exportCompressBtn');
+    
+    if (selectCompressVideoBtn) {
+        selectCompressVideoBtn.addEventListener('click', () => {
+            if (compressVideoInput) compressVideoInput.click();
+        });
+    }
+    if (compressVideoInput) {
+        compressVideoInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectCompressVideo(e.target.files[0]);
+            }
+        });
+    }
+    if (compressionQuality) {
+        compressionQuality.addEventListener('change', () => {
+            if (compressState.videoToCompress) renderCompressVideoInfo();
+        });
+    }
+    if (compressionResolution) {
+        compressionResolution.addEventListener('change', () => {
+            if (compressState.videoToCompress) renderCompressVideoInfo();
+        });
+    }
+    if (exportCompressBtn) exportCompressBtn.addEventListener('click', exportCompressScript);
     
     // Modal Controls
     setupModalControls();
 }
+
+function setupActionsListeners() {
+    // Actions Management - chiamata dopo che il template è stato inserito
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
+    const exportJSONBtn = document.getElementById('exportJSONBtn');
+    const importJSONInput = document.getElementById('importJSONInput');
+    
+    if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
+    if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
+    if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
+    if (importJSONInput) {
+        importJSONInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                importActionsFromJSON(e.target.files[0]);
+            }
+        });
+    }
+}
+
+// Tabs Management
+function setupTabs() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    console.log('Setup tabs - Pulsanti trovati:', tabButtons.length);
+    
+    tabButtons.forEach(button => {
+        console.log('Aggiunto listener a:', button.getAttribute('data-tab'));
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = button.getAttribute('data-tab');
+            console.log('Click su tab:', tabId);
+            switchToTab(tabId);
+        });
+    });
+}
+
+function switchToTab(tabId) {
+    console.log('Switching to tab:', tabId);
+    
+    // Rimuovi active da tutti i pulsanti
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Rimuovi active da tutti i contenuti
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Aggiungi active al pulsante e contenuto selezionato
+    const selectedButton = document.querySelector(`[data-tab="${tabId}"]`);
+    const selectedContent = document.getElementById(`${tabId}-tab`);
+    
+    console.log('Pulsante selezionato:', selectedButton);
+    console.log('Contenuto selezionato:', selectedContent);
+    
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+        console.log('Attivato pulsante');
+    }
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+        console.log('Attivato contenuto');
+    }
+}
+
 
 // Video Loading
 function handleVideoFileSelect(event) {
@@ -289,7 +379,8 @@ function createAction() {
         startTime: state.markedStart,
         endTime: state.markedEnd,
         duration: state.markedEnd - state.markedStart,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        comment: ''
     };
     
     state.actions.push(action);
@@ -341,6 +432,10 @@ function renderActions() {
                     <input type="number" step="0.1" value="${action.endTime.toFixed(1)}" 
                            onchange="updateActionTime('${action.id}', 'end', this.value)">
                 </div>
+                <div class="action-comment-input">
+                    <textarea placeholder="Aggiungi un commento per questa clip..." 
+                              onchange="updateActionComment('${action.id}', this.value)">${action.comment || ''}</textarea>
+                </div>
             </div>
             <div class="action-controls-btns">
                 <button class="btn-play" onclick="playAction('${action.id}')">▶</button>
@@ -377,6 +472,14 @@ function updateActionTime(actionId, type, value) {
     action.duration = action.endTime - action.startTime;
     
     renderActions();
+    saveStateToLocalStorage();
+}
+
+function updateActionComment(actionId, comment) {
+    const action = state.actions.find(a => a.id === actionId);
+    if (!action) return;
+    
+    action.comment = comment;
     saveStateToLocalStorage();
 }
 
@@ -558,6 +661,7 @@ function loadStateFromLocalStorage() {
 window.deleteTag = deleteTag;
 window.toggleActionSelection = toggleActionSelection;
 window.updateActionTime = updateActionTime;
+window.updateActionComment = updateActionComment;
 window.playAction = playAction;
 window.deleteAction = deleteAction;
 
