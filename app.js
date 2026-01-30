@@ -939,15 +939,15 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 <div class="action-info">
                     <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
                     <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
-                    <div class="action-comment-input">
-                        <input type="text" placeholder="Aggiungi un commento..." 
-                               value="${action.comment || ''}"
-                               onchange="updateActionComment('${action.id}', this.value)">
-                    </div>
                 </div>
                 <div class="action-controls-btns">
                     <button class="btn-play" onclick="playAction('${action.id}')">▶</button>
                     <button class="btn-delete" onclick="deleteAction('${action.id}')">×</button>
+                </div>
+                <div class="action-comment-input">
+                    <input type="text" placeholder="Aggiungi un commento..." 
+                           value="${action.comment || ''}"
+                           onchange="updateActionComment('${action.id}', this.value)">
                 </div>
             `;
             
