@@ -172,6 +172,7 @@ function setupActionsListeners() {
     const deselectAllBtn = document.getElementById('deselectAllBtn');
     const toggleFilterBtn = document.getElementById('toggleFilterBtn');
     const collapseAllBtn = document.getElementById('collapseAllBtn');
+    const resetOrderBtn = document.getElementById('resetOrderBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
@@ -182,6 +183,7 @@ function setupActionsListeners() {
         deselectAllBtn: !!deselectAllBtn,
         toggleFilterBtn: !!toggleFilterBtn,
         collapseAllBtn: !!collapseAllBtn,
+        resetOrderBtn: !!resetOrderBtn,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
@@ -192,6 +194,7 @@ function setupActionsListeners() {
     if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
     if (toggleFilterBtn) toggleFilterBtn.addEventListener('click', toggleFilterPanel);
     if (collapseAllBtn) collapseAllBtn.addEventListener('click', toggleCollapseAll);
+    if (resetOrderBtn) resetOrderBtn.addEventListener('click', resetCustomOrder);
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -639,6 +642,9 @@ function renderActions() {
     
     // Ordina le azioni in base a customOrder se disponibile, altrimenti per tag order
     let sortedActions;
+    
+    console.log('customOrder disponibile:', state.customOrder?.length, 'azioni totali:', filteredActions.length);
+    
     if (state.customOrder && state.customOrder.length > 0) {
         // Usa l'ordinamento personalizzato
         const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
@@ -648,6 +654,7 @@ function renderActions() {
             if (orderA !== orderB) return orderA - orderB;
             return a.startTime - b.startTime;
         });
+        console.log('Usando customOrder');
     } else {
         // Ordinamento predefinito per tag order, poi per tempo
         sortedActions = [...filteredActions].sort((a, b) => {
@@ -656,6 +663,7 @@ function renderActions() {
             if (tagOrderA !== tagOrderB) return tagOrderA - tagOrderB;
             return a.startTime - b.startTime;
         });
+        console.log('Usando ordinamento per tag.order');
     }
     
     // Mostra sempre i gruppi
@@ -782,6 +790,13 @@ function toggleCollapseAll() {
     
     // Aggiorna il testo del pulsante
     collapseAllBtn.textContent = hasExpanded ? '📂 Espandi Tutti' : '📄 Compatta Tutti';
+}
+
+function resetCustomOrder() {
+    state.customOrder = [];
+    saveStateToLocalStorage();
+    renderActions();
+    showNotification('✅ Ordine resettato! Gruppi ordinati per tag.', 'success', 2000);
 }
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
