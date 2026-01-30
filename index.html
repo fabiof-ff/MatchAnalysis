@@ -110,10 +110,17 @@
                     </div>
                 </div>
                 <div class="selection-tools" style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
-                    <button id="selectAllBtn" style="font-size: 0.75em; padding: 4px 8px;">✓ Seleziona Tutte</button>
-                    <button id="deselectAllBtn" style="font-size: 0.75em; padding: 4px 8px;">✗ Deseleziona Tutte</button>
+                    <button id="selectAllBtn" title="Seleziona Tutte" style="padding: 4px 8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </button>
+                    <button id="deselectAllBtn" title="Deseleziona Tutte" style="padding: 4px 8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                     <div class="filter-tags-container" style="display: inline-block;">
-                        <button id="toggleFilterBtn" style="font-size: 0.75em; padding: 4px 8px;">🏷️ Filtra per Tag</button>
+                        <button id="toggleFilterBtn" title="Filtra per Tag" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px; font-size: 0.75em;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                            Filtra Tag
+                        </button>
                         <div id="filterTagsPanel" class="filter-tags-panel" style="display: none;">
                             <!-- I checkbox per i tag appariranno qui -->
                         </div>
