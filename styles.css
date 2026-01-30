@@ -577,12 +577,12 @@ video {
 
 .action-item {
     background: white;
-    padding: 15px;
+    padding: 10px 15px;
     border-radius: 8px;
     border-left: 4px solid #3498db;
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 15px;
+    gap: 12px;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: all 0.3s;
@@ -606,48 +606,53 @@ video {
 
 .action-info {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    flex-direction: row;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .action-tag {
     font-weight: 600;
-    font-size: 1.1em;
+    font-size: 1em;
+    min-width: 80px;
 }
 
 .action-time {
     color: #7f8c8d;
     font-family: monospace;
-    font-size: 0.95em;
+    font-size: 0.9em;
+    min-width: 150px;
 }
 
 .action-duration-input {
     display: flex;
     gap: 5px;
     align-items: center;
-    font-size: 0.9em;
+    font-size: 0.85em;
 }
 
 .action-duration-input input {
-    width: 60px;
-    padding: 3px 5px;
+    width: 50px;
+    padding: 2px 5px;
     border: 1px solid #ddd;
     border-radius: 3px;
     font-family: monospace;
 }
 
 .action-comment-input {
-    margin-top: 8px;
+    flex: 1;
+    min-width: 200px;
 }
 
 .action-comment-input textarea {
     width: 100%;
-    min-height: 50px;
-    padding: 8px;
+    min-height: 32px;
+    padding: 5px 8px;
     border: 2px solid #e0e0e0;
     border-radius: 5px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 0.9em;
+    font-size: 0.85em;
     resize: vertical;
     transition: border-color 0.3s;
 }

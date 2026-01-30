@@ -9,7 +9,8 @@ const state = {
     selectedTag: null,
     markedStart: null,
     markedEnd: null,
-    selectedActions: new Set()
+    selectedActions: new Set(),
+    filterTag: '' // Filtro per tag
 };
 
 // Initialize App
@@ -166,18 +167,27 @@ function setupEventListeners() {
 function setupActionsListeners() {
     console.log('setupActionsListeners chiamata');
     // Actions Management - chiamata dopo che il template è stato inserito
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const filterByTag = document.getElementById('filterByTag');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportJSONBtn = document.getElementById('exportJSONBtn');
     const importJSONInput = document.getElementById('importJSONInput');
     
     console.log('Elementi trovati:', {
+        selectAllBtn: !!selectAllBtn,
+        deselectAllBtn: !!deselectAllBtn,
+        filterByTag: !!filterByTag,
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportJSONBtn: !!exportJSONBtn,
         importJSONInput: !!importJSONInput
     });
     
+    if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllActions);
+    if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllActions);
+    if (filterByTag) filterByTag.addEventListener('change', (e) => filterActionsByTag(e.target.value));
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportActionsToJSON);
@@ -188,6 +198,9 @@ function setupActionsListeners() {
             }
         });
     }
+    
+    // Popola il filtro per tag
+    populateTagFilter();
     
     console.log('setupActionsListeners completata');
 }
@@ -333,6 +346,7 @@ function addNewTag() {
     
     renderTags();
     saveTagsToLocalStorage();
+    populateTagFilter(); // Aggiorna il filtro
 }
 
 function renderTags() {
@@ -607,13 +621,20 @@ function renderActions() {
     const actionsList = document.getElementById('actionsList');
     actionsList.innerHTML = '';
     
-    if (state.actions.length === 0) {
-        actionsList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Nessuna azione taggata</p>';
+    // Filtra le azioni se c'è un filtro attivo
+    let filteredActions = state.actions;
+    if (state.filterTag) {
+        filteredActions = state.actions.filter(a => a.tag.id === state.filterTag);
+    }
+    
+    if (filteredActions.length === 0) {
+        const message = state.filterTag ? 'Nessuna azione con questo tag' : 'Nessuna azione taggata';
+        actionsList.innerHTML = `<p style="text-align: center; color: #7f8c8d; padding: 20px;">${message}</p>`;
         return;
     }
     
     // Sort actions by start time
-    const sortedActions = [...state.actions].sort((a, b) => a.startTime - b.startTime);
+    const sortedActions = [...filteredActions].sort((a, b) => a.startTime - b.startTime);
     
     sortedActions.forEach(action => {
         const actionItem = document.createElement('div');
@@ -639,7 +660,7 @@ function renderActions() {
                            onchange="updateActionTime('${action.id}', 'end', this.value)">
                 </div>
                 <div class="action-comment-input">
-                    <textarea placeholder="Aggiungi un commento per questa clip..." 
+                    <textarea placeholder="Aggiungi un commento..." 
                               onchange="updateActionComment('${action.id}', this.value)">${action.comment || ''}</textarea>
                 </div>
             </div>
@@ -650,6 +671,56 @@ function renderActions() {
         `;
         
         actionsList.appendChild(actionItem);
+    });
+}
+
+function selectAllActions() {
+    // Seleziona tutte le azioni visibili (filtrate)
+    let actionsToSelect = state.actions;
+    if (state.filterTag) {
+        actionsToSelect = state.actions.filter(a => a.tag.id === state.filterTag);
+    }
+    
+    actionsToSelect.forEach(action => {
+        state.selectedActions.add(action.id);
+    });
+    
+    renderActions();
+    showNotification(`✅ ${actionsToSelect.length} azioni selezionate`, 'success');
+}
+
+function deselectAllActions() {
+    state.selectedActions.clear();
+    renderActions();
+    showNotification('✅ Selezione cancellata', 'info');
+}
+
+function filterActionsByTag(tagId) {
+    state.filterTag = tagId;
+    renderActions();
+    
+    if (tagId) {
+        const tag = state.tags.find(t => t.id === tagId);
+        if (tag) {
+            showNotification(`🏷️ Filtro attivo: ${tag.name}`, 'info');
+        }
+    }
+}
+
+function populateTagFilter() {
+    const filterByTag = document.getElementById('filterByTag');
+    if (!filterByTag) return;
+    
+    // Rimuovi tutte le opzioni tranne la prima
+    filterByTag.innerHTML = '<option value="">🏷️ Tutti i Tag</option>';
+    
+    // Aggiungi un'opzione per ogni tag
+    state.tags.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag.id;
+        option.textContent = tag.name;
+        option.style.color = tag.color;
+        filterByTag.appendChild(option);
     });
 }
 

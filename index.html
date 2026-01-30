@@ -59,6 +59,11 @@
         <div class="tagged-actions-section" style="margin: 20px;">
             <h2>Azioni Taggate</h2>
             <div class="actions-toolbar">
+                <button id="selectAllBtn">✓ Seleziona Tutte</button>
+                <button id="deselectAllBtn">✗ Deseleziona Tutte</button>
+                <select id="filterByTag" style="padding: 12px; border-radius: 5px; border: 2px solid #3498db; font-weight: 600; cursor: pointer;">
+                    <option value="">🏷️ Tutti i Tag</option>
+                </select>
                 <button id="deleteSelectedBtn">Elimina Selezionati</button>
                 <button id="exportFFmpegBtn" style="background: linear-gradient(135deg, #e67e22, #d35400);">📜 Esporta Script FFmpeg</button>
                 <button id="exportJSONBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">💾 Esporta JSON</button>
