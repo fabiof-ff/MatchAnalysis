@@ -723,9 +723,21 @@ async function exportActionsToJSON() {
     const fileNameJson = `match_analysis_${Date.now()}.json`;
     await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
 
+    // Helper per convertire mm:ss in secondi
+    const timeToSeconds = (timeStr) => {
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':');
+        if (parts.length === 2) {
+            return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+        }
+        return parseFloat(timeStr) || 0;
+    };
+
     // Esporta TXT (Formato: Timer Frazione Tag_Name Team Commento)
-    const start1 = parseFloat(document.getElementById('matchStart1')?.value || "0");
-    const start2 = parseFloat(document.getElementById('matchStart2')?.value || "0");
+    const val1 = document.getElementById('matchStart1')?.value || "00:00";
+    const val2 = document.getElementById('matchStart2')?.value || "45:00";
+    const start1 = timeToSeconds(val1);
+    const start2 = timeToSeconds(val2);
     
     let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
     // Ordiniamo le azioni per tempo di inizio per il file di testo

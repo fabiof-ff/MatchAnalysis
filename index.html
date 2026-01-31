@@ -90,6 +90,19 @@
                         Stop
                     </button>
                 </div>
+
+                <!-- Sezione Tempi Match (Sostituita sopra al video) -->
+                <div class="match-times-section" style="background: #fdf2e9; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #f8c471; display: flex; align-items: center; gap: 15px;">
+                    <h4 style="margin: 0; color: #d35400; font-size: 0.85em; white-space: nowrap;">⏱️ Inizio Frazioni (Export TXT):</h4>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label style="font-size: 0.75em; color: #7f8c8d;">1° T (mm:ss):</label>
+                        <input type="text" id="matchStart1" value="00:00" placeholder="00:00" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #ccc; text-align: center;">
+                        
+                        <label style="font-size: 0.75em; color: #7f8c8d; margin-left: 10px;">2° T (mm:ss):</label>
+                        <input type="text" id="matchStart2" value="45:00" placeholder="45:00" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #ccc; text-align: center;">
+                    </div>
+                    <p style="margin: 0; font-size: 0.7em; color: #a04000; font-style: italic;">*I tempi di inizio verranno sottratti dal timer nel TXT</p>
+                </div>
                 
                 <video id="videoPlayer" controls>
                     Il tuo browser non supporta il video HTML5.
@@ -164,21 +177,6 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                             <input type="file" id="importActionsJSONInput" accept=".json" style="display: none;">
                         </label>
-                    </div>
-                </div>
-
-                <!-- Sezione Tempi Match -->
-                <div class="match-times-section" style="background: #fdf2e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #f8c471;">
-                    <h4 style="margin: 0 0 8px 0; color: #d35400; font-size: 0.85em;">⏱️ Inizio Frazioni (per Export TXT)</h4>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex: 1;">
-                            <label style="font-size: 0.75em; color: #7f8c8d; display: block;">Inizio 1° T (sec):</label>
-                            <input type="number" id="matchStart1" value="0" step="1" style="width: 100%; padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label style="font-size: 0.75em; color: #7f8c8d; display: block;">Inizio 2° T (sec):</label>
-                            <input type="number" id="matchStart2" value="2700" step="1" style="width: 100%; padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
-                        </div>
                     </div>
                 </div>
 
