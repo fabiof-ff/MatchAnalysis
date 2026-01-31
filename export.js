@@ -732,6 +732,9 @@ async function exportActionsToJSON() {
     const sortedActionsForTxt = [...state.actions].sort((a, b) => a.startTime - b.startTime);
     
     sortedActionsForTxt.forEach(action => {
+        // Escludi le immagini dall'export TXT
+        if (action.type === 'image') return;
+
         let frazione = "1° T";
         let matchTimeSeconds = 0;
         
@@ -746,10 +749,10 @@ async function exportActionsToJSON() {
         // Formato decimale: minuti + (secondi/60). Es: 1.5 significa 1 minuto e 30 secondi
         const timerDecimale = (matchTimeSeconds / 60).toFixed(1);
         
-        const tagName = action.tag ? action.tag.name : "N/A";
-        const teamName = (action.tag && action.tag.team && state.teamNames) 
+        const tagName = action.tag ? action.tag.name : "";
+        const teamName = (action.tag && action.tag.team && state.teamNames && state.teamNames[action.tag.team]) 
             ? state.teamNames[action.tag.team] 
-            : "N/A";
+            : "";
         const comment = action.comment || "";
         
         txtContent += `${timerDecimale}\t${frazione}\t${tagName}\t${teamName}\t${comment}\n`;
