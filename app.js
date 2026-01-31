@@ -58,7 +58,7 @@ function initializeDefaultTags() {
     ];
 
     const matchEvents = [
-        'OccGol', 'Az Prom', 'Rigore', 'TiroPiedeArea', 'TiroTestaArea', 
+        'Gol', 'OccGol', 'Az Prom', 'Rigore', 'TiroPiedeArea', 'TiroTestaArea', 
         'TiroDaFuori', 'Cross', 'Corner', 'PunLat', 'PunCentr', 'Pass. Chiave', 'Fuorigioco'
     ];
 
@@ -103,10 +103,14 @@ function initializeDefaultTags() {
                 state.tags = loadedTags;
                 console.log('Tag caricati da localStorage:', state.tags.length, state.tags);
                 
-                // Assicurati che i nuovi tag di sistema esistano (integrazione silenziosa)
+                // Assicurati che i nuovi tag di sistema esistano e aggiorna l'ordine di quelli esistenti
                 defaultTags.forEach(dt => {
-                    if (!state.tags.find(t => t.id === dt.id)) {
+                    const existing = state.tags.find(t => t.id === dt.id);
+                    if (!existing) {
                         state.tags.push(dt);
+                    } else if (dt.isDefault) {
+                        // Aggiorna l'ordine per riflettere le modifiche nel codice (es. Gol primo)
+                        existing.order = dt.order;
                     }
                 });
             } else {
