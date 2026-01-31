@@ -131,15 +131,34 @@ function renderMergeVideosList() {
         <p style="color: #2ecc71; font-weight: 600; margin-bottom: 10px;">
             📹 ${mergeState.videosToMerge.length} video pronti per il merge:
         </p>
-        <ol style="padding-left: 20px; color: #34495e;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
             ${mergeState.videosToMerge.map((v, i) => `
-                <li style="margin: 5px 0;">
-                    <strong>${v.name}</strong> 
-                    <button onclick="removeMergeVideo(${i})" style="background: #e74c3c; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; margin-left: 10px;">✖ Rimuovi</button>
-                </li>
+                <div style="display: flex; align-items: center; background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #3498db;">
+                    <span style="font-weight: 700; color: #95a5a6; margin-right: 12px; min-width: 20px;">${i + 1}.</span>
+                    <span style="flex-grow: 1; font-weight: 500; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${v.name}</span>
+                    <div style="display: flex; gap: 5px; margin-left: 10px;">
+                        <button onclick="moveMergeVideo(${i}, -1)" ${i === 0 ? 'disabled style="opacity: 0.3; cursor: default;"' : ''} 
+                            style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;" title="Sposta Su">▲</button>
+                        <button onclick="moveMergeVideo(${i}, 1)" ${i === mergeState.videosToMerge.length - 1 ? 'disabled style="opacity: 0.3; cursor: default;"' : ''} 
+                            style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;" title="Sposta Giù">▼</button>
+                        <button onclick="removeMergeVideo(${i})" 
+                            style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;" title="Rimuovi">✖</button>
+                    </div>
+                </div>
             `).join('')}
-        </ol>
+        </div>
     `;
+}
+
+function moveMergeVideo(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= mergeState.videosToMerge.length) return;
+    
+    const temp = mergeState.videosToMerge[index];
+    mergeState.videosToMerge[index] = mergeState.videosToMerge[newIndex];
+    mergeState.videosToMerge[newIndex] = temp;
+    
+    renderMergeVideosList();
 }
 
 function removeMergeVideo(index) {
@@ -208,7 +227,7 @@ function renderCompressVideoInfo() {
     `;
 }
 
-function exportCompressScript() {
+async function exportCompressScript() {
     if (!compressState.videoToCompress) {
         alert('Seleziona un video da comprimere!');
         return;
@@ -235,6 +254,7 @@ function exportCompressScript() {
     }
     
     let ffmpegScript = `@echo off
+chcp 65001 > nul
 REM Script di Compressione Video - Match Analysis
 REM Video: ${videoName}
 
@@ -250,8 +270,8 @@ echo Qualità: ${quality.toUpperCase()} (CRF ${crf})
 echo Risoluzione: ${resolution === 'original' ? 'Originale' : resolution + 'p'}
 echo.
 
-set INPUT_VIDEO=${videoName}
-set OUTPUT_VIDEO=${nameWithoutExt}_compressed.mp4
+set "INPUT_VIDEO=${videoName}"
+set "OUTPUT_VIDEO=${nameWithoutExt}_compressed.mp4"
 
 echo Compressione in corso...
 echo Questo potrebbe richiedere diversi minuti.
@@ -260,8 +280,7 @@ echo.
 `;
     
     // FFmpeg command
-    ffmpegScript += `ffmpeg -i "%INPUT_VIDEO%"${scaleFilter} -c:v libx264 -crf ${crf} -preset medium -c:a aac -b:a 128k "%OUTPUT_VIDEO%"
-`;
+    ffmpegScript += `ffmpeg -i "%INPUT_VIDEO%"${scaleFilter} -c:v libx264 -crf ${crf} -preset medium -c:a aac -b:a 128k "%OUTPUT_VIDEO%"\n`;
     ffmpegScript += `if errorlevel 1 goto error\n\n`;
     
     // Success
@@ -296,22 +315,35 @@ pause
 goto end
 
 :end
-pause
 `;
     
-    // Download as .bat file
-    const blob = new Blob([ffmpegScript], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `compress_video_${Date.now()}.bat`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Salva il file batch
+    const batFileName = `compress_video_${Date.now()}.bat`;
+    await saveFileInVideoFolder(ffmpegScript, batFileName, 'Script Compressione');
+
+    // Crea anche uno script PowerShell per eseguirlo senza problemi di sicurezza
+    const psScript = `# Script di esecuzione per ${batFileName}
+# Questo script sblocca e avvia il file batch
+
+Write-Host "Sblocco e avvio compressione video..." -ForegroundColor Green
+$scriptPath = Join-Path $PSScriptRoot "${batFileName}"
+
+# Sblocca il file per rimuovere la protezione di Windows
+Unblock-File -Path $scriptPath -ErrorAction SilentlyContinue
+
+# Esegui il batch file
+Start-Process -FilePath $scriptPath -WorkingDirectory $PSScriptRoot -Wait
+
+Write-Host "Operazione completata!" -ForegroundColor Green
+`;
+
+    const psFileName = `RUN_${batFileName.replace('.bat', '.ps1')}`;
+    await saveFileInVideoFolder(psScript, psFileName, 'Script PowerShell');
     
-    showNotification(`✅ Script compressione scaricato! Metti lo script nella cartella del video ed eseguilo.`, 'success');
+    showNotification(`✅ Script compressione salvato! Esegui il file ${psFileName} per iniziare la compressione.`, 'success');
 }
 
-function exportMergeScript() {
+async function exportMergeScript() {
     if (mergeState.videosToMerge.length < 2) {
         alert('Seleziona almeno 2 video da unire!');
         return;
@@ -320,6 +352,7 @@ function exportMergeScript() {
     const videoNames = mergeState.videosToMerge.map(v => v.name);
     
     let ffmpegScript = `@echo off
+chcp 65001 > nul
 REM Script di Merge Video - Match Analysis
 REM Unione di ${videoNames.length} file video
 
@@ -333,7 +366,8 @@ echo.
 echo Unione di ${videoNames.length} video...
 echo.
 
-set OUTPUT_VIDEO=merged_video_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4
+set "OUTPUT_VIDEO=merged_video_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4"
+set "OUTPUT_VIDEO=%OUTPUT_VIDEO: =0%"
 
 `;
 
@@ -362,18 +396,32 @@ set OUTPUT_VIDEO=merged_video_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:
     ffmpegScript += `echo.\nexplorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
     
     // Error handling
-    ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che:\necho - FFmpeg sia installato e nel PATH\necho - Tutti i video siano nella stessa cartella dello script\necho - I nomi dei file siano corretti\necho.\npause\ngoto end\n\n:end\npause\n`;
+    ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che:\necho - FFmpeg sia installato e nel PATH\necho - Tutti i video siano nella stessa cartella dello script\necho - I nomi dei file siano corretti\necho.\npause\ngoto end\n\n:end\n`;
     
-    // Download as .bat file
-    const blob = new Blob([ffmpegScript], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `merge_videos_${Date.now()}.bat`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Salva il file batch
+    const batFileName = `merge_videos_${Date.now()}.bat`;
+    await saveFileInVideoFolder(ffmpegScript, batFileName, 'Script Merge');
+
+    // Crea anche uno script PowerShell per eseguirlo senza problemi di sicurezza
+    const psScript = `# Script di esecuzione per ${batFileName}
+# Questo script sblocca e avvia il file batch
+
+Write-Host "Sblocco e avvio merge video..." -ForegroundColor Green
+$scriptPath = Join-Path $PSScriptRoot "${batFileName}"
+
+# Sblocca il file per rimuovere la protezione di Windows
+Unblock-File -Path $scriptPath -ErrorAction SilentlyContinue
+
+# Esegui il batch file
+Start-Process -FilePath $scriptPath -WorkingDirectory $PSScriptRoot -Wait
+
+Write-Host "Operazione completata!" -ForegroundColor Green
+`;
+
+    const psFileName = `RUN_${batFileName.replace('.bat', '.ps1')}`;
+    await saveFileInVideoFolder(psScript, psFileName, 'Script PowerShell');
     
-    showNotification(`✅ Script merge scaricato! Metti lo script nella cartella con i ${videoNames.length} video ed eseguilo.`, 'success');
+    showNotification(`✅ Script merge salvato! Esegui il file ${psFileName} per unire i video.`, 'success');
 }
 
 async function exportActionsToFFmpeg() {
@@ -622,7 +670,7 @@ echo.
     ffmpegScript += `explorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
     
     // Error handling
-    ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che FFmpeg sia installato e nel PATH.\necho.\npause\ngoto end\n\n:end\npause\n`;
+    ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che FFmpeg sia installato e nel PATH.\necho.\npause\ngoto end\n\n:end\n`;
     
     // Salva il file batch
     const fileName = `create_highlight_${Date.now()}.bat`;
@@ -761,5 +809,6 @@ window.importTagsFromJSON = importTagsFromJSON;
 window.selectMergeVideos = selectMergeVideos;
 window.exportMergeScript = exportMergeScript;
 window.removeMergeVideo = removeMergeVideo;
+window.moveMergeVideo = moveMergeVideo;
 window.selectCompressVideo = selectCompressVideo;
 window.exportCompressScript = exportCompressScript;
