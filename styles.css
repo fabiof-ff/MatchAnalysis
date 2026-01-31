@@ -168,11 +168,10 @@ header h1 {
 
 .main-content {
     display: grid;
-    grid-template-columns: 0.4fr 1.7fr 0.9fr;
+    grid-template-columns: 0.6fr 1.6fr 0.8fr;
     gap: 15px;
-    padding: 20px;
-    height: calc(100vh - 70px);
-    min-height: calc(100vh - 70px);
+    padding: 15px;
+    height: calc(100vh - 55px);
     align-items: stretch;
 }
 
@@ -353,18 +352,36 @@ video {
 .tags-section {
     display: flex;
     flex-direction: column;
-    gap: 20px;
     height: 100%;
+    overflow-y: auto;
+    gap: 15px;
+}
+
+/* Stilizzazione barra di scorrimento globale del pannello tag */
+.tags-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tags-section::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.tags-section::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+.tags-section::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }
 
 .tag-panel {
     background: #f8f9fa;
     border-radius: 10px;
     padding: 15px;
-    max-height: calc(100vh - 110px);
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Garantisce lo scroll interno */
 }
 
 .tag-panel h2 {
@@ -409,9 +426,7 @@ video {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
+    flex-shrink: 0;
 }
 
 .tag-item {
@@ -1487,5 +1502,38 @@ button:active {
     display: block;
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
+}
+
+
+
+/* Team Tags Column Styles */
+.tag-list-column {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 0;
+}
+
+/* Stilizzazione barre di scorrimento */
+.tag-list::-webkit-scrollbar, 
+.tag-list-column::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tag-list::-webkit-scrollbar-track, 
+.tag-list-column::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.tag-list::-webkit-scrollbar-thumb, 
+.tag-list-column::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+.tag-list::-webkit-scrollbar-thumb:hover, 
+.tag-list-column::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }
 
