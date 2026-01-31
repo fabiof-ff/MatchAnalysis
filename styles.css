@@ -890,6 +890,13 @@ video {
     box-shadow: 0 4px 20px rgba(52, 152, 219, 0.5);
     border-left-width: 5px;
     border: 2px solid #3498db;
+    animation: pulse-active 2s infinite;
+}
+
+@keyframes pulse-active {
+    0% { box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+    50% { box-shadow: 0 4px 25px rgba(52, 152, 219, 0.6); }
+    100% { box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
 }
 
 .action-checkbox {

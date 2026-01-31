@@ -1106,6 +1106,11 @@ function handleGroupDrop(e) {
     // Salva il nuovo ordine completo
     saveCompleteActionsOrder();
     
+    // Aggiorna la sequenza se in riproduzione
+    if (previewState.isPlaying) {
+        refreshPreviewSequence();
+    }
+    
     showNotification('✅ Gruppi riordinati!', 'success', 2000);
     
     // Re-render con il nuovo ordine
@@ -1151,6 +1156,11 @@ function handleActionDrop(e, container) {
     
     // Salva il nuovo ordine completo di tutte le azioni
     saveCompleteActionsOrder();
+
+    // Aggiorna la sequenza se in riproduzione
+    if (previewState.isPlaying) {
+        refreshPreviewSequence();
+    }
 }
 
 function getDragAfterElementAction(container, y) {
@@ -1854,18 +1864,43 @@ function showNotification(message, type = 'info') {
 
 // Sequence Playback Logic (Main Player)
 function startPreviewSequence() {
-    // Collect and sort selected actions
-    previewState.selectedActions = state.actions
-        .filter(a => state.selectedActions.has(a.id))
-        .sort((a, b) => a.startTime - b.startTime);
+    // Collect selected actions
+    let filteredActions = state.actions.filter(a => state.selectedActions.has(a.id));
 
-    if (previewState.selectedActions.length === 0) {
+    if (filteredActions.length === 0) {
         alert("Seleziona almeno un'azione per avviare la sequenza.");
         return;
     }
 
+    // Sort actions using the same logic as renderActions()
+    let sortedActions;
+    if (state.customOrder && state.customOrder.length > 0) {
+        const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.startTime - b.startTime;
+        });
+    } else {
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const tagOrderA = a.tag.order || 0;
+            const tagOrderB = b.tag.order || 0;
+            if (tagOrderA !== tagOrderB) return tagOrderA - tagOrderB;
+            return a.startTime - b.startTime;
+        });
+    }
+
+    previewState.selectedActions = sortedActions;
     previewState.currentIndex = 0;
     previewState.isPlaying = true;
+
+    // Filter list to show only selected actions
+    if (!state.filterSelected) {
+        state.filterSelected = true;
+        updateSelectedFilterBtn();
+        renderActions();
+    }
 
     // UI Updates
     document.getElementById('startPreviewFromMainBtn').style.display = 'none';
@@ -1889,7 +1924,11 @@ function playPreviewIndex(index) {
     
     // Highlight active action in main list if visible
     document.querySelectorAll('.action-item').forEach(item => {
-        item.classList.toggle('active-action', item.dataset.id === action.id);
+        const isCurrent = item.dataset.actionId === action.id;
+        item.classList.toggle('active-action', isCurrent);
+        if (isCurrent) {
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     });
 }
 
@@ -1905,14 +1944,56 @@ function playNextInPreview() {
 function stopPreview() {
     previewState.isPlaying = false;
     const videoPlayer = document.getElementById('videoPlayer');
-    videoPlayer.pause();
+    if (videoPlayer) videoPlayer.pause();
 
     // UI Updates
-    document.getElementById('startPreviewFromMainBtn').style.display = 'flex';
-    document.getElementById('stopPreviewMainBtn').style.display = 'none';
+    const startBtn = document.getElementById('startPreviewFromMainBtn');
+    const stopBtn = document.getElementById('stopPreviewMainBtn');
+    if (startBtn) startBtn.style.display = 'flex';
+    if (stopBtn) stopBtn.style.display = 'none';
 
     // Remove highlights
     document.querySelectorAll('.action-item').forEach(item => {
         item.classList.remove('active-action');
     });
+}
+
+/**
+ * Rinfresca l'elenco della sequenza in base al nuovo ordine nel DOM
+ * senza interrompere la riproduzione corrente
+ */
+function refreshPreviewSequence() {
+    // Identifichiamo l'azione in corso
+    const currentAction = previewState.selectedActions[previewState.currentIndex];
+    
+    // Ricalcoliamo l'ordine (stessa logica di startPreviewSequence)
+    let filteredActions = state.actions.filter(a => state.selectedActions.has(a.id));
+    
+    let sortedActions;
+    if (state.customOrder && state.customOrder.length > 0) {
+        const orderMap = new Map(state.customOrder.map((id, index) => [id, index]));
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.startTime - b.startTime;
+        });
+    } else {
+        sortedActions = [...filteredActions].sort((a, b) => {
+            const tagOrderA = a.tag.order || 0;
+            const tagOrderB = b.tag.order || 0;
+            if (tagOrderA !== tagOrderB) return tagOrderA - tagOrderB;
+            return a.startTime - b.startTime;
+        });
+    }
+
+    previewState.selectedActions = sortedActions;
+    
+    // Aggiorniamo l'indice in base alla nuova posizione dell'azione corrente
+    if (currentAction) {
+        const newIndex = previewState.selectedActions.findIndex(a => a.id === currentAction.id);
+        if (newIndex !== -1) {
+            previewState.currentIndex = newIndex;
+        }
+    }
 }
