@@ -161,38 +161,50 @@ function setupEventListeners() {
     const startTimeSlider = document.getElementById('startTimeSlider');
     const endTimeSlider = document.getElementById('endTimeSlider');
     
-    if (startTimeSlider) {
+    if (startTimeSlider && endTimeSlider) {
         startTimeSlider.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
+            const startVal = parseFloat(startTimeSlider.value);
+            const endVal = parseFloat(endTimeSlider.value);
+            
+            if (startVal > endVal) {
+                startTimeSlider.value = endVal;
+            }
+            
+            const finalVal = parseFloat(startTimeSlider.value);
             const videoPlayer = document.getElementById('videoPlayer');
             if (videoPlayer && videoPlayer.src) {
-                videoPlayer.currentTime = value;
+                videoPlayer.currentTime = finalVal;
             }
-            updateSliderDisplay('start', value);
+            updateSliderDisplay('start', finalVal);
+            updateSliderTrack();
         });
         
         startTimeSlider.addEventListener('change', (e) => {
-            const value = parseFloat(e.target.value);
             if (state.activeAction) {
-                updateActionTime(state.activeAction.id, 'start', value);
+                updateActionTime(state.activeAction.id, 'start', parseFloat(startTimeSlider.value));
             }
         });
-    }
-    
-    if (endTimeSlider) {
+        
         endTimeSlider.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
+            const startVal = parseFloat(startTimeSlider.value);
+            const endVal = parseFloat(endTimeSlider.value);
+            
+            if (endVal < startVal) {
+                endTimeSlider.value = startVal;
+            }
+            
+            const finalVal = parseFloat(endTimeSlider.value);
             const videoPlayer = document.getElementById('videoPlayer');
             if (videoPlayer && videoPlayer.src) {
-                videoPlayer.currentTime = value;
+                videoPlayer.currentTime = finalVal;
             }
-            updateSliderDisplay('end', value);
+            updateSliderDisplay('end', finalVal);
+            updateSliderTrack();
         });
         
         endTimeSlider.addEventListener('change', (e) => {
-            const value = parseFloat(e.target.value);
             if (state.activeAction) {
-                updateActionTime(state.activeAction.id, 'end', value);
+                updateActionTime(state.activeAction.id, 'end', parseFloat(endTimeSlider.value));
             }
         });
     }
@@ -243,6 +255,8 @@ function setupActionsListeners() {
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportActionsJSONBtn = document.getElementById('exportActionsJSONBtn');
     const importActionsJSONInput = document.getElementById('importActionsJSONInput');
+    const addImageActionBtn = document.getElementById('addImageActionBtn');
+    const addImageActionInput = document.getElementById('addImageActionInput');
     const exportTagsJSONBtn = document.getElementById('exportTagsJSONBtn');
     const importTagsJSONInput = document.getElementById('importTagsJSONInput');
     
@@ -255,6 +269,7 @@ function setupActionsListeners() {
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportActionsJSONBtn: !!exportActionsJSONBtn,
         importActionsJSONInput: !!importActionsJSONInput,
+        addImageActionBtn: !!addImageActionBtn,
         exportTagsJSONBtn: !!exportTagsJSONBtn,
         importTagsJSONInput: !!importTagsJSONInput
     });
@@ -273,6 +288,21 @@ function setupActionsListeners() {
             }
         });
     }
+    
+    if (addImageActionBtn) {
+        addImageActionBtn.addEventListener('click', () => {
+            addImageActionInput.click();
+        });
+    }
+    
+    if (addImageActionInput) {
+        addImageActionInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                addImageAction(e.target.files[0]);
+            }
+        });
+    }
+    
     if (exportTagsJSONBtn) exportTagsJSONBtn.addEventListener('click', exportTagsToJSON);
     if (importTagsJSONInput) {
         importTagsJSONInput.addEventListener('change', (e) => {
@@ -731,6 +761,38 @@ function createAction() {
     console.log('Azione creata:', action);
 }
 
+function addImageAction(file) {
+    const action = {
+        id: 'image_' + Date.now(),
+        type: 'image',
+        fileName: file.name,
+        duration: 5.0, // Durata predefinita 5 secondi
+        startTime: 0, 
+        endTime: 5.0,
+        tag: {
+            id: 'tag_image',
+            name: 'IMMAGINE',
+            color: '#3498db',
+            isImage: true
+        },
+        timestamp: new Date().toISOString(),
+        comment: file.name
+    };
+    
+    state.actions.push(action);
+    state.selectedActions.add(action.id);
+    
+    // Aggiungi all'ordine personalizzato se esiste
+    if (state.customOrder) {
+        state.customOrder.push(action.id);
+    }
+    
+    renderActions();
+    saveStateToLocalStorage();
+    
+    showNotification(`✅ Immagine "${file.name}" aggiunta. Ricorda di metterla nella cartella del video per l'export!`, 'success', 5000);
+}
+
 // Actions Rendering
 function renderActions() {
     const actionsList = document.getElementById('actionsList');
@@ -995,11 +1057,14 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 actionItem.classList.add('active-action');
             }
             
+            const isImage = action.type === 'image';
+            
             actionItem.innerHTML = `
                 <input type="checkbox" class="action-checkbox" 
                        ${state.selectedActions.has(action.id) ? 'checked' : ''}
                        onchange="toggleActionSelection('${action.id}')">
                 <div class="action-flags">
+                    ${!isImage ? `
                     <button class="action-flag-btn ${action.positive ? 'active' : ''}" 
                             title="Positivo" 
                             style="color: #27ae60; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
@@ -1017,15 +1082,25 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
+                    ` : `
+                    <div style="color: #3498db; padding: 2px; display: flex; align-items: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    </div>
+                    `}
                 </div>
                 <div class="action-info">
                     <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
-                    <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
+                    <div class="action-time">
+                        ${isImage ? `Durata: <input type="number" step="0.5" min="0.5" value="${action.duration}" style="width: 45px; background: rgba(255,255,255,0.1); border: 1px solid rgba(0,0,0,0.1); color: inherit; padding: 0 2px; border-radius: 3px;" onchange="event.stopPropagation(); window.updateImageDuration('${action.id}', this.value)"> s` 
+                                  : `${formatTime(action.startTime)} - ${formatTime(action.endTime)}`}
+                    </div>
                 </div>
                 <div class="action-controls-btns">
+                    ${!isImage ? `
                     <button class="btn-play" title="Play" onclick="event.stopPropagation(); playAction('${action.id}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     </button>
+                    ` : ''}
                     <button class="btn-stop" title="Stop" onclick="event.stopPropagation(); stopAction()" style="background: #95a5a6; color: white;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                     </button>
@@ -1429,8 +1504,16 @@ function updateActionTime(actionId, type, value) {
     
     if (type === 'start') {
         action.startTime = time;
+        // Impedisci che start superi end
+        if (action.startTime > action.endTime) {
+            action.endTime = action.startTime + 0.1;
+        }
     } else if (type === 'end') {
         action.endTime = time;
+        // Impedisci che end sia inferiore a start
+        if (action.endTime < action.startTime) {
+            action.startTime = Math.max(0, action.endTime - 0.1);
+        }
     }
     
     action.duration = action.endTime - action.startTime;
@@ -1459,13 +1542,12 @@ function updateMainSliders() {
     
     const videoPlayer = document.getElementById('videoPlayer');
     const maxDuration = videoPlayer && videoPlayer.duration ? videoPlayer.duration : 3600;
-    const rangeBuffer = 30;
+    const rangeBuffer = 30; // 30 secondi di buffer intorno all'azione
     
     const action = state.activeAction;
-    const startMin = Math.max(0, action.startTime - rangeBuffer);
-    const startMax = Math.min(maxDuration, action.startTime + rangeBuffer);
-    const endMin = Math.max(0, action.endTime - rangeBuffer);
-    const endMax = Math.min(maxDuration, action.endTime + rangeBuffer);
+    // Calcoliamo un range comune per entrambi i cursori
+    const rangeMin = Math.max(0, Math.min(action.startTime, action.endTime) - rangeBuffer);
+    const rangeMax = Math.min(maxDuration, Math.max(action.startTime, action.endTime) + rangeBuffer);
     
     const container = document.getElementById('actionSliderContainer');
     const startSlider = document.getElementById('startTimeSlider');
@@ -1473,25 +1555,52 @@ function updateMainSliders() {
     const actionName = document.getElementById('activeActionName');
     
     container.style.display = 'block';
-    actionName.textContent = `${action.tag.name} - ${formatTime(action.startTime)} → ${formatTime(action.endTime)}`;
+    actionName.textContent = action.tag.name;
     
-    startSlider.min = startMin;
-    startSlider.max = startMax;
+    startSlider.min = rangeMin;
+    startSlider.max = rangeMax;
     startSlider.value = action.startTime;
     
-    endSlider.min = endMin;
-    endSlider.max = endMax;
+    endSlider.min = rangeMin;
+    endSlider.max = rangeMax;
     endSlider.value = action.endTime;
     
     updateSliderDisplay('start', action.startTime);
     updateSliderDisplay('end', action.endTime);
+    updateSliderTrack();
+}
+
+function updateSliderTrack() {
+    const startSlider = document.getElementById('startTimeSlider');
+    const endSlider = document.getElementById('endTimeSlider');
+    const track = document.querySelector('.slider-track');
+    
+    if (!startSlider || !endSlider || !track) return;
+    
+    const min = parseFloat(startSlider.min);
+    const max = parseFloat(startSlider.max);
+    const val1 = parseFloat(startSlider.value);
+    const val2 = parseFloat(endSlider.value);
+    
+    const percent1 = ((val1 - min) / (max - min)) * 100;
+    const percent2 = ((val2 - min) / (max - min)) * 100;
+    
+    // Coloriamo la parte tra i due cursori
+    track.style.background = `linear-gradient(to right, 
+        #ddd ${percent1}%, 
+        #3498db ${percent1}%, 
+        #3498db ${percent2}%, 
+        #ddd ${percent2}%)`;
 }
 
 function updateSliderDisplay(type, value) {
     const displayId = type === 'start' ? 'startTimeDisplay' : 'endTimeDisplay';
     const display = document.getElementById(displayId);
     if (display) {
-        display.textContent = formatTime(value);
+        // Mostriamo anche i decimi di secondo per precisione
+        const mins = Math.floor(value / 60);
+        const secs = (value % 60).toFixed(1);
+        display.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(4, '0')}`;
     }
 }
 
@@ -1521,6 +1630,20 @@ function updateActionComment(actionId, comment) {
     action.comment = comment;
     saveStateToLocalStorage();
 }
+
+function updateImageDuration(actionId, duration) {
+    const action = state.actions.find(a => a.id === actionId);
+    if (!action || action.type !== 'image') return;
+    
+    const d = parseFloat(duration);
+    if (isNaN(d) || d < 0.1) return;
+    
+    action.duration = d;
+    renderActions();
+    saveStateToLocalStorage();
+}
+
+window.updateImageDuration = updateImageDuration;
 
 function playAction(actionId) {
     if (previewState.isPlaying) stopPreview();
@@ -1919,9 +2042,6 @@ function playPreviewIndex(index) {
     const action = previewState.selectedActions[index];
     const videoPlayer = document.getElementById('videoPlayer');
     
-    videoPlayer.currentTime = action.startTime;
-    videoPlayer.play();
-    
     // Highlight active action in main list if visible
     document.querySelectorAll('.action-item').forEach(item => {
         const isCurrent = item.dataset.actionId === action.id;
@@ -1930,6 +2050,23 @@ function playPreviewIndex(index) {
             item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     });
+
+    if (action.type === 'image') {
+        videoPlayer.pause();
+        showNotification(`🖼 Sequenza: Visualizzazione Immagine "${action.fileName}" (${action.duration}s)`, 'info', action.duration * 1000);
+        
+        if (window.previewImageTimeout) clearTimeout(window.previewImageTimeout);
+        window.previewImageTimeout = setTimeout(() => {
+            if (previewState.isPlaying && previewState.currentIndex === index) {
+                playNextInPreview();
+            }
+        }, action.duration * 1000);
+        return;
+    }
+
+    if (window.previewImageTimeout) clearTimeout(window.previewImageTimeout);
+    videoPlayer.currentTime = action.startTime;
+    videoPlayer.play();
 }
 
 function playNextInPreview() {

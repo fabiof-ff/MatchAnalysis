@@ -34,10 +34,8 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
                         // Crea il file direttamente nella directory del video
                         const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
                         const writable = await fileHandle.createWritable();
-                        // Forza UTF-8 con BOM per compatibilità Windows (accenti e simboli)
-                        const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
-                            ? '\ufeff' + content 
-                            : content;
+                        // Rimosso BOM per compatibilità Windows (evita l'errore ´╗┐@echo)
+                        const encodedContent = content; 
                         await writable.write(encodedContent);
                         await writable.close();
                         showNotification(`✅ File salvato in: ${videoDirectoryHandle.name}\\${defaultFileName}`, 'success');
@@ -401,16 +399,42 @@ async function exportActionsToFFmpeg() {
                 return a.startTime - b.startTime;
             });
     }
+
+    // Sanificazione: assicura che startTime < endTime e ricalcola durata
+    selectedActionsList = selectedActionsList.map(a => {
+        const sanitized = { ...a };
+        if (sanitized.startTime > sanitized.endTime) {
+            const tmp = sanitized.startTime;
+            sanitized.startTime = sanitized.endTime;
+            sanitized.endTime = tmp;
+        }
+        sanitized.duration = sanitized.endTime - sanitized.startTime;
+        
+        // Se la durata è troppo breve (es meno di 0.1s), impostala a un minimo per evitare crash FFmpeg
+        if (sanitized.duration < 0.1) sanitized.duration = 0.1;
+        
+        return sanitized;
+    });
     
     // Generate FFmpeg commands
     const videoFileName = (state.currentVideo && state.currentVideo.name) 
         ? state.currentVideo.name 
         : 'VIDEO_NON_TROVATO.mp4';
     
+    // Recupera dimensioni video per eventuali immagini
+    const videoPlayer = document.getElementById('videoPlayer');
+    const vWidth = videoPlayer.videoWidth || 1920;
+    const vHeight = videoPlayer.videoHeight || 1080;
+
+    // Leggi durata sfumatura dal selettore
+    const xfadeDuration = parseFloat(document.getElementById('xfadeDuration')?.value || "0");
+    const useXfade = xfadeDuration > 0 && selectedActionsList.length > 1;
+
     let ffmpegScript = `@echo off
 chcp 65001 > nul
 REM Script generato da Match Analysis
 REM Video di sintesi con ${selectedActionsList.length} clip
+${useXfade ? `REM Transizione xfade tra le clip: ${xfadeDuration}s` : ''}
 
 echo ========================================
 echo   Match Analysis - Creazione Highlight
@@ -446,6 +470,19 @@ echo.
 
     // Extract each segment
     selectedActionsList.forEach((action, i) => {
+        if (action.type === 'image') {
+            ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Elaborazione Immagine: ${action.fileName} (${action.duration.toFixed(1)}s)\n`;
+            // Verifica se il file esiste (echo di avviso nello script)
+            ffmpegScript += `if not exist "${action.fileName}" echo ATTENZIONE: Immagine "${action.fileName}" non trovata!\n`;
+            
+            // Crea un segmento video dall'immagine
+            // Usiamo scale e pad per assicurarci che l'immagine entri nel formato del video senza distorsioni
+            // AGGIUNTO: -r 30 per pareggiare il framerate del video originale ed evitare errori xfade
+            ffmpegScript += `ffmpeg -loop 1 -r 30 -i "${action.fileName}" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${vWidth}:${vHeight}:force_original_aspect_ratio=decrease,pad=${vWidth}:${vHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p" -c:a aac -b:a 128k -shortest "segment_${i}.mp4"\n`;
+            ffmpegScript += `if errorlevel 1 goto error\n\n`;
+            return;
+        }
+
         // Funzione di utility per fare l'escape dei caratteri speciali per FFmpeg drawtext
         const escapeFFmpegText = (text) => {
             if (!text) return '';
@@ -477,39 +514,109 @@ echo.
         ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
         
         // Estrazione con sovrapposizione testo
-        ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -vf "drawtext=text='${safeOverlayText}':fontcolor=${fontColor}:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=(w-text_w)/2:y=h-th-30" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "segment_${i}.mp4"\n`;
+        // Se usiamo xfade, aggiungiamo pad per l'audio per evitare problemi di sincronizzazione e reset dei timestamp
+        let vf = `drawtext=text='${safeOverlayText}':fontcolor=${fontColor}:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=(w-text_w)/2:y=h-th-30`;
+        
+        // AGGIUNTO: -r 30 per garantire coerenza tra tutti i segmenti (video e immagini)
+        ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${vf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
-    // Create concat file
-    ffmpegScript += `echo.\necho Creazione lista concatenazione...\n`;
-    ffmpegScript += `(\n`;
-    selectedActionsList.forEach((_, i) => {
-        ffmpegScript += `echo file 'segment_${i}.mp4'\n`;
-    });
-    ffmpegScript += `) > concat_list.txt\n\n`;
-    
-    // Concatenate
-    ffmpegScript += `echo Unione dei ${selectedActionsList.length} clip...\necho.\n`;
-    ffmpegScript += `ffmpeg -f concat -safe 0 -i concat_list.txt -c copy "%OUTPUT_VIDEO%"\n`;
-    ffmpegScript += `if errorlevel 1 goto error\n\n`;
+    if (useXfade) {
+        // Logica complessa xfade via filter_complex
+        ffmpegScript += `echo.\necho Applicazione sfumature (Dip to Black) tra le clip...\n`;
+        
+        let inputs = "";
+        let filter = "";
+        let currentOut = "v0";
+        let currentAudioOut = "a0";
+        
+        // Calcola in anticipo le durate effettive delle transizioni per ogni coppia
+        const effectiveXfades = [];
+        for (let i = 1; i < selectedActionsList.length; i++) {
+            effectiveXfades.push(Math.min(xfadeDuration, selectedActionsList[i-1].duration, selectedActionsList[i].duration));
+        }
+
+        // Prima clip: base + fade out alla fine
+        inputs += `-i "segment_0.mp4" `;
+        let v0Filt = `settb=AVTB,setpts=PTS-STARTPTS`;
+        if (effectiveXfades.length > 0) {
+            v0Filt += `,fade=out:st=${(selectedActionsList[0].duration - effectiveXfades[0]).toFixed(3)}:d=${effectiveXfades[0].toFixed(3)}`;
+        }
+        filter += `[0:v]${v0Filt}[v0]; [0:a]atrim=0,asetpts=PTS-STARTPTS[a0]; `;
+        
+        let offset = selectedActionsList[0].duration;
+        
+        for (let i = 1; i < selectedActionsList.length; i++) {
+            inputs += `-i "segment_${i}.mp4" `;
+            const vIn = `v${i}_in`;
+            const aIn = `a${i}_in`;
+            const vOut = `v${i}`;
+            const aOut = `a${i}`;
+            
+            const transDur = effectiveXfades[i-1];
+            const nextTransDur = (i < effectiveXfades.length) ? effectiveXfades[i] : 0;
+            
+            // Applica fade in all'inizio e (se non è l'ultima) fade out alla fine della clip corrente
+            let viFilt = `settb=AVTB,setpts=PTS-STARTPTS,fade=in:st=0:d=${transDur.toFixed(3)}`;
+            if (nextTransDur > 0) {
+                viFilt += `,fade=out:st=${(selectedActionsList[i].duration - nextTransDur).toFixed(3)}:d=${nextTransDur.toFixed(3)}`;
+            }
+            
+            // Porta i timestamp a zero per ogni input clip e applica i fade
+            filter += `[${i}:v]${viFilt}[${vIn}]; [${i}:a]atrim=0,asetpts=PTS-STARTPTS[${aIn}]; `;
+            
+            // Calcola l'offset: dove INIZIA la sfumatura sulla clip corrente accumulata
+            offset -= transDur;
+            
+            // Applica xfade video e acrossfade audio
+            filter += `[${currentOut}][${vIn}]xfade=transition=fade:duration=${transDur.toFixed(3)}:offset=${offset.toFixed(3)}[${vOut}]; `;
+            filter += `[${currentAudioOut}][${aIn}]acrossfade=d=${transDur.toFixed(3)}[${aOut}]; `;
+            
+            currentOut = vOut;
+            currentAudioOut = aOut;
+            // Aggiorna l'offset per la prossima clip (aggiungi la durata della clip i intera)
+            offset += selectedActionsList[i].duration;
+        }
+        
+        ffmpegScript += `ffmpeg ${inputs} -filter_complex "${filter.slice(0, -2)}" -map "[${currentOut}]" -map "[${currentAudioOut}]" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "%OUTPUT_VIDEO%"\n`;
+        ffmpegScript += `if errorlevel 1 goto error\n\n`;
+    } else {
+        // Metodo classico concat (senza sfumature)
+        ffmpegScript += `echo.\necho Creazione lista concatenazione...\n`;
+        ffmpegScript += `(\n`;
+        selectedActionsList.forEach((_, i) => {
+            ffmpegScript += `echo file 'segment_${i}.mp4'\n`;
+        });
+        ffmpegScript += `) > concat_list.txt\n\n`;
+        
+        // Concatenate
+        ffmpegScript += `echo Unione dei ${selectedActionsList.length} clip...\necho.\n`;
+        ffmpegScript += `ffmpeg -f concat -safe 0 -i concat_list.txt -c copy "%OUTPUT_VIDEO%"\n`;
+        ffmpegScript += `if errorlevel 1 goto error\n\n`;
+    }
     
     // Cleanup
     ffmpegScript += `echo.\necho Pulizia file temporanei...\n`;
     selectedActionsList.forEach((_, i) => {
         ffmpegScript += `del "segment_${i}.mp4"\n`;
     });
-    ffmpegScript += `del concat_list.txt\n\n`;
+    if (!useXfade) ffmpegScript += `del concat_list.txt\n`;
+    ffmpegScript += `\n`;
     
     // Success
     ffmpegScript += `echo.\necho ========================================\necho   Video creato con successo!\necho ========================================\necho.\necho File: %OUTPUT_VIDEO%\necho.\n`;
     ffmpegScript += `echo Clip incluse:\n`;
     selectedActionsList.forEach((action, i) => {
-        ffmpegScript += `echo   ${i+1}. ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
-        if (action.comment && action.comment.trim()) {
-            ffmpegScript += ` - ${action.comment.replace(/["|']/g, '')}`;
+        if (action.type === 'image') {
+            ffmpegScript += `echo   ${i+1}. [IMMAGINE] ${action.fileName} (${action.duration}s)\n`;
+        } else {
+            ffmpegScript += `echo   ${i+1}. ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
+            if (action.comment && action.comment.trim()) {
+                ffmpegScript += ` - ${action.comment.replace(/["|']/g, '')}`;
+            }
+            ffmpegScript += `\n`;
         }
-        ffmpegScript += `\n`;
     });
     ffmpegScript += `echo.\n`;
     ffmpegScript += `explorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
