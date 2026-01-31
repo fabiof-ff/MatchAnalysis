@@ -669,11 +669,27 @@ async function exportActionsToJSON() {
         actions: state.actions
     };
     
+    // Esporta JSON
     const json = JSON.stringify(data, null, 2);
-    const fileName = `match_analysis_${Date.now()}.json`;
-    await saveFileInVideoFolder(json, fileName, 'Match Analysis JSON');
+    const fileNameJson = `match_analysis_${Date.now()}.json`;
+    await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
+
+    // Esporta TXT (una riga per azione: Tempo Tag Commento)
+    let txtContent = "";
+    // Ordiniamo le azioni per tempo di inizio per il file di testo
+    const sortedActionsForTxt = [...state.actions].sort((a, b) => a.startTime - b.startTime);
     
-    // Non mostrare notifica qui, la mostra già saveFileInVideoFolder
+    sortedActionsForTxt.forEach(action => {
+        const timeStr = typeof formatTime === 'function' ? formatTime(action.startTime) : String(action.startTime);
+        const tagName = action.tag ? action.tag.name : "N/A";
+        const comment = action.comment || "";
+        txtContent += `${timeStr} ${tagName} ${comment}\n`;
+    });
+
+    if (txtContent) {
+        const fileNameTxt = `match_analysis_${Date.now()}.txt`;
+        await saveFileInVideoFolder(txtContent, fileNameTxt, 'Elenco Azioni TXT');
+    }
 }
 
 function importActionsFromJSON(file) {
