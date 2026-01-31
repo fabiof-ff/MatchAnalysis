@@ -44,13 +44,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Default Tags
 function initializeDefaultTags() {
     const defaultTags = [
-        { id: 'goal', name: 'Goal', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 0 },
-        { id: 'assist', name: 'Assist', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 1 },
-        { id: 'fallo', name: 'Fallo', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2 },
-        { id: 'corner', name: 'Corner', color: '#f39c12', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 3 },
-        { id: 'tiro', name: 'Tiro', color: '#9b59b6', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 4 },
-        { id: 'parata', name: 'Parata', color: '#1abc9c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5 },
-        { id: 'cartellino', name: 'Cartellino', color: '#e67e22', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6 }
+        { id: 'costr_fondo', name: 'Costr. fondo', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 0 },
+        { id: 'costr_din_basso', name: 'Costr.din.basso', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 1 },
+        { id: 'costr_centr', name: 'Costr.Centr.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2 },
+        { id: 'costr_din_att', name: 'Costr.din.att.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 3 },
+        { id: 'tran_offen', name: 'Tran.Offen.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 4 },
+        { id: 'press_rimessa', name: 'Press. Rimessa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5 },
+        { id: 'prima_press_alta', name: 'Prima press.alta', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6 },
+        { id: 'press_din_centr', name: 'Press.din.centr.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 7 },
+        { id: 'dif_bassa', name: 'Dif.bassa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 8 },
+        { id: 'tran_dif', name: 'Tran.Dif.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 9 }
     ];
     
     console.log('initializeDefaultTags - state.tags.length PRIMA:', state.tags.length);
@@ -75,15 +78,6 @@ function initializeDefaultTags() {
         console.log('Nessun localStorage trovato, uso i default');
         state.tags = [...defaultTags];
     }
-    
-    // Assicurati che tutti i default esistano
-    defaultTags.forEach(defaultTag => {
-        const exists = state.tags.find(t => t.id === defaultTag.id);
-        if (!exists) {
-            console.log('Aggiunto tag default mancante:', defaultTag.name);
-            state.tags.push(defaultTag);
-        }
-    });
     
     // Ordina per order
     state.tags.sort((a, b) => {
@@ -504,7 +498,7 @@ function renderTags() {
         }
         tagItem.style.backgroundColor = tag.color;
         
-        const deleteBtn = tag.isDefault ? '' : `<button class="delete-tag" onclick="deleteTag('${tag.id}')">×</button>`;
+        const deleteBtn = `<button class="delete-tag" onclick="deleteTag('${tag.id}')">×</button>`;
         
         tagItem.innerHTML = `
             <div class="tag-header">
@@ -659,12 +653,6 @@ function createActionFromTag(tag) {
 }
 
 function deleteTag(tagId) {
-    const tag = state.tags.find(t => t.id === tagId);
-    if (tag && tag.isDefault) {
-        alert('Non puoi eliminare i tag di default');
-        return;
-    }
-    
     if (confirm('Sei sicuro di voler eliminare questo tag?')) {
         state.tags = state.tags.filter(t => t.id !== tagId);
         if (state.selectedTag && state.selectedTag.id === tagId) {
