@@ -723,22 +723,36 @@ async function exportActionsToJSON() {
     const fileNameJson = `match_analysis_${Date.now()}.json`;
     await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
 
-    // Esporta TXT (una riga per azione: Tempo Tag Commento)
-    let txtContent = "";
+    // Esporta TXT (Formato: Timer Frazione Tag_Name Team Commento)
+    const start1 = parseFloat(document.getElementById('matchStart1')?.value || "0");
+    const start2 = parseFloat(document.getElementById('matchStart2')?.value || "0");
+    
+    let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
     // Ordiniamo le azioni per tempo di inizio per il file di testo
     const sortedActionsForTxt = [...state.actions].sort((a, b) => a.startTime - b.startTime);
     
     sortedActionsForTxt.forEach(action => {
-        const timeStr = typeof formatTime === 'function' ? formatTime(action.startTime) : String(action.startTime);
+        let frazione = "1° T";
+        let matchTimeSeconds = 0;
         
-        let tagName = action.tag ? action.tag.name : "N/A";
-        // Se il tag ha una squadra associata, aggiungi il nome della squadra
-        if (action.tag && action.tag.team && state.teamNames && state.teamNames[action.tag.team]) {
-            tagName = `[${state.teamNames[action.tag.team]}] ${tagName}`;
+        if (action.startTime >= start2) {
+            frazione = "2° T";
+            matchTimeSeconds = action.startTime - start2;
+        } else {
+            frazione = "1° T";
+            matchTimeSeconds = Math.max(0, action.startTime - start1);
         }
         
+        // Formato decimale: minuti + (secondi/60). Es: 1.5 significa 1 minuto e 30 secondi
+        const timerDecimale = (matchTimeSeconds / 60).toFixed(1);
+        
+        const tagName = action.tag ? action.tag.name : "N/A";
+        const teamName = (action.tag && action.tag.team && state.teamNames) 
+            ? state.teamNames[action.tag.team] 
+            : "N/A";
         const comment = action.comment || "";
-        txtContent += `${timeStr} ${tagName} ${comment}\n`;
+        
+        txtContent += `${timerDecimale}\t${frazione}\t${tagName}\t${teamName}\t${comment}\n`;
     });
 
     if (txtContent) {
