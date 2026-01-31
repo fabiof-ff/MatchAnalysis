@@ -572,15 +572,23 @@ echo.
         
         let vf = "";
         if (statusText) {
-            // Primo box per OK/KO
-            // Usiamo ascent e descent fissi per garantire che l'altezza del box sia costante indipendentemente dal testo
-            vf += `drawtext=text='${safeStatusText}':font='Arial':fontcolor=${statusColor}:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-45-ascent, `;
-            // Secondo box per il Tag/Commento
-            // x fissa a 95 per stare vicino, y identica per avere stessa altezza e allineamento
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=95:y=h-45-ascent`;
+            // Per garantire altezze IDENTICHE dei due box:
+            // 1. Usiamo un filtro drawtext "fantasma" che disegna il box usando caratteri con ascender e descender (es. 'gp')
+            //    ma con il colore del testo trasparente (@0).
+            // 2. Sovrapponiamo poi il testo reale senza box.
+            
+            // BOX 1 (Status)
+            vf += `drawtext=text='${safeStatusText}gp':font='Arial':fontsize=32:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-70, `;
+            vf += `drawtext=text='${safeStatusText}':font='Arial':fontsize=32:fontcolor=${statusColor}:x=20:y=h-70, `;
+            
+            // BOX 2 (Main Text)
+            // Posizionato a x=105 per lasciare spazio al primo box (~85px) + margine
+            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=32:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=10:x=105:y=h-70, `;
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=32:fontcolor=white:x=105:y=h-70`;
         } else {
-            // Solo testo principale
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-45-ascent`;
+            // Se non c'è status, solo box principale con altezza standardizzata
+            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=32:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-70, `;
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=32:fontcolor=white:x=20:y=h-70`;
         }
         
         // AGGIUNTO: -r 30 per garantire coerenza tra tutti i segmenti (video e immagini)
