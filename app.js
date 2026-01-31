@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Default Tags
 function initializeDefaultTags() {
-    const defaultTags = [
+    const baseTags = [
         { id: 'costr_fondo', name: 'Costr. fondo', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 0 },
         { id: 'costr_din_basso', name: 'Costr.din.basso', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 1 },
         { id: 'costr_centr', name: 'Costr.Centr.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2 },
@@ -55,6 +55,41 @@ function initializeDefaultTags() {
         { id: 'dif_bassa', name: 'Dif.bassa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 8 },
         { id: 'tran_dif', name: 'Tran.Dif.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 9 }
     ];
+
+    const matchEvents = [
+        'OccGol', 'Az Prom', 'Rigore', 'TiroPiedeArea', 'TiroTestaArea', 
+        'TiroDaFuori', 'Cross', 'Corner', 'PunLat', 'PunCentr', 'Pass. Chiave', 'Fuorigioco'
+    ];
+
+    const matchEventTags = [];
+    matchEvents.forEach((name, idx) => {
+        // Squadra A
+        matchEventTags.push({
+            id: `ma_${name.toLowerCase().replace(/[^a-z]/g, '')}`,
+            name: name,
+            color: '#3498db',
+            offsetBefore: 5,
+            offsetAfter: 5,
+            isDefault: true,
+            category: 'match_events',
+            team: 'A',
+            order: 100 + idx
+        });
+        // Squadra B
+        matchEventTags.push({
+            id: `mb_${name.toLowerCase().replace(/[^a-z]/g, '')}`,
+            name: name,
+            color: '#f39c12',
+            offsetBefore: 5,
+            offsetAfter: 5,
+            isDefault: true,
+            category: 'match_events',
+            team: 'B',
+            order: 200 + idx
+        });
+    });
+
+    const defaultTags = [...baseTags, ...matchEventTags];
     
     console.log('initializeDefaultTags - state.tags.length PRIMA:', state.tags.length);
     
@@ -66,6 +101,13 @@ function initializeDefaultTags() {
             if (loadedTags && Array.isArray(loadedTags) && loadedTags.length > 0) {
                 state.tags = loadedTags;
                 console.log('Tag caricati da localStorage:', state.tags.length, state.tags);
+                
+                // Assicurati che i nuovi tag di sistema esistano (integrazione silenziosa)
+                defaultTags.forEach(dt => {
+                    if (!state.tags.find(t => t.id === dt.id)) {
+                        state.tags.push(dt);
+                    }
+                });
             } else {
                 console.log('localStorage vuoto o non valido, uso i default');
                 state.tags = [...defaultTags];
@@ -466,28 +508,26 @@ function addNewTag() {
 
 function renderTags() {
     const tagList = document.getElementById('tagList');
+    const tagListA = document.getElementById('tagListA');
+    const tagListB = document.getElementById('tagListB');
+    
     console.log('===== renderTags CHIAMATA =====');
-    console.log('Tags disponibili:', state.tags.length);
-    console.log('Tags:', state.tags);
-    console.log('Elemento tagList:', tagList);
     
     if (!tagList) {
         console.error('ERRORE: Elemento tagList non trovato nel DOM!');
         return;
     }
     
+    // Pulisci tutti i contenitori
     tagList.innerHTML = '';
-    console.log('tagList innerHTML pulito');
+    if (tagListA) tagListA.innerHTML = '';
+    if (tagListB) tagListB.innerHTML = '';
     
     if (state.tags.length === 0) {
-        console.error('ERRORE: Nessun tag da renderizzare!');
         return;
     }
     
-    console.log('Inizio loop forEach per renderizzare', state.tags.length, 'tag');
-    
     state.tags.forEach((tag, index) => {
-        console.log('Renderizzando tag', index, ':', tag.name);
         const tagItem = document.createElement('div');
         tagItem.className = 'tag-item';
         tagItem.draggable = true;
@@ -521,37 +561,39 @@ function renderTags() {
             }
         });
         
-        // Drag and drop
-        tagItem.addEventListener('dragstart', (e) => {
-            e.stopPropagation();
-            tagItem.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', tag.id);
-        });
-        
-        tagItem.addEventListener('dragend', (e) => {
-            tagItem.classList.remove('dragging');
-        });
-        
-        tagItem.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            const draggingItem = document.querySelector('.dragging');
-            if (draggingItem && draggingItem !== tagItem) {
-                const rect = tagItem.getBoundingClientRect();
-                const midpoint = rect.left + rect.width / 2;
-                if (e.clientX < midpoint) {
-                    tagList.insertBefore(draggingItem, tagItem);
-                } else {
-                    tagList.insertBefore(draggingItem, tagItem.nextSibling);
+        // Drag and drop (solo per tagList principale)
+        if (!tag.category || tag.category !== 'match_events') {
+            tagItem.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                tagItem.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', tag.id);
+            });
+            
+            tagItem.addEventListener('dragend', (e) => {
+                tagItem.classList.remove('dragging');
+            });
+            
+            tagItem.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const draggingItem = document.querySelector('.dragging');
+                if (draggingItem && draggingItem !== tagItem) {
+                    const rect = tagItem.getBoundingClientRect();
+                    const midpoint = rect.left + rect.width / 2;
+                    if (e.clientX < midpoint) {
+                        tagList.insertBefore(draggingItem, tagItem);
+                    } else {
+                        tagList.insertBefore(draggingItem, tagItem.nextSibling);
+                    }
                 }
-            }
-        });
-        
-        tagItem.addEventListener('drop', (e) => {
-            e.preventDefault();
-            reorderTags();
-        });
+            });
+            
+            tagItem.addEventListener('drop', (e) => {
+                e.preventDefault();
+                reorderTags();
+            });
+        }
         
         // Listener per gli input di offset
         const offsetInputs = tagItem.querySelectorAll('.offset-input');
@@ -562,11 +604,17 @@ function renderTags() {
             });
         });
         
-        tagList.appendChild(tagItem);
-        console.log('Tag', tag.name, 'aggiunto al DOM');
+        // Distribuisci nel contenitore corretto
+        if (tag.category === 'match_events') {
+            if (tag.team === 'A' && tagListA) {
+                tagListA.appendChild(tagItem);
+            } else if (tag.team === 'B' && tagListB) {
+                tagListB.appendChild(tagItem);
+            }
+        } else {
+            tagList.appendChild(tagItem);
+        }
     });
-    
-    console.log('===== renderTags COMPLETATA - Tag nel DOM:', tagList.children.length, '=====');
 }
 
 function reorderTags() {

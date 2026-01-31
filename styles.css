@@ -407,8 +407,8 @@ video {
 
 .tag-list {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -417,12 +417,12 @@ video {
 .tag-item {
     display: flex;
     flex-direction: column;
-    padding: 4px 6px;
+    padding: 3px 6px;
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
-    gap: 3px;
+    gap: 2px;
 }
 
 .tag-item.dragging {

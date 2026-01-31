@@ -45,6 +45,18 @@
                         <!-- Tags precaricati -->
                     </div>
                 </div>
+
+                <!-- Nuovo Sottopannello: Eventi Match -->
+                <div class="tag-panel" style="padding: 10px; border-top: 2px solid #ddd; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 0.8em; color: #7f8c8d;">
+                        <div>SQUADRA A</div>
+                        <div>SQUADRA B</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; overflow-y: auto; align-content: start;">
+                        <div id="tagListA" class="tag-list-column"></div>
+                        <div id="tagListB" class="tag-list-column"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Sezione Video Player -->
