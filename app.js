@@ -14,7 +14,8 @@ const state = {
     filterSelected: false, // Filtro azioni selezionate
     filterFlag: null, // Filtro per flag (positive/negative/null)
     customOrder: [], // Ordinamento personalizzato delle azioni selezionate
-    activeAction: null // Azione attualmente controllata dallo slider
+    activeAction: null, // Azione attualmente controllata dallo slider
+    teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' } // Nomi squadre modificabili
 };
 
 // Sequence Playback Logic (Main Player)
@@ -510,6 +511,12 @@ function renderTags() {
     const tagList = document.getElementById('tagList');
     const tagListA = document.getElementById('tagListA');
     const tagListB = document.getElementById('tagListB');
+    const teamNameAInput = document.getElementById('teamNameA');
+    const teamNameBInput = document.getElementById('teamNameB');
+    
+    // Aggiorna i nomi delle squadre nell'UI se gli input esistono
+    if (teamNameAInput && state.teamNames) teamNameAInput.value = state.teamNames.A || 'SQUADRA A';
+    if (teamNameBInput && state.teamNames) teamNameBInput.value = state.teamNames.B || 'SQUADRA B';
     
     console.log('===== renderTags CHIAMATA =====');
     
@@ -1975,18 +1982,6 @@ function closeModal(modalId) {
 }
 
 // Local Storage
-function saveStateToLocalStorage() {
-    try {
-        const saveData = {
-            tags: state.tags,
-            actions: state.actions
-        };
-        localStorage.setItem('matchAnalysisState', JSON.stringify(saveData));
-    } catch (e) {
-        console.error('Errore nel salvataggio:', e);
-    }
-}
-
 function saveTagsToLocalStorage() {
     try {
         console.log('Salvataggio tags:', state.tags.length);
@@ -2010,6 +2005,13 @@ function loadActionsFromLocalStorage() {
             state.customOrder = JSON.parse(savedOrder);
             console.log('Ordine personalizzato caricato:', state.customOrder.length);
         }
+
+        // Carica nomi squadre
+        const savedTeamNames = localStorage.getItem('matchAnalysisTeamNames');
+        if (savedTeamNames) {
+            state.teamNames = JSON.parse(savedTeamNames);
+            console.log('Nomi squadre caricati:', state.teamNames);
+        }
     } catch (e) {
         console.error('Errore nel caricamento azioni:', e);
     }
@@ -2020,8 +2022,17 @@ function saveStateToLocalStorage() {
     try {
         localStorage.setItem('matchAnalysisActions', JSON.stringify(state.actions));
         localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
+        localStorage.setItem('matchAnalysisTeamNames', JSON.stringify(state.teamNames));
     } catch (e) {
         console.error('Errore nel salvataggio azioni:', e);
+    }
+}
+
+function updateTeamName(team, name) {
+    if (state.teamNames) {
+        state.teamNames[team] = name;
+        saveStateToLocalStorage();
+        console.log(`Nome squadra ${team} aggiornato: ${name}`);
     }
 }
 
@@ -2035,7 +2046,17 @@ function loadStateFromLocalStorage() {
                 state.tags = data.tags.filter(t => !t.isDefault); // Solo tag custom
             }
             if (data.actions) state.actions = data.actions;
+            
+            // Carica nomi squadre se presenti nello stato vecchio (se salvato così)
+            if (data.teamNames) state.teamNames = data.teamNames;
+            
             console.log('Stato caricato da localStorage - Tags custom:', state.tags.length);
+        }
+        
+        // Carica nomi squadre dal nuovo sistema di salvataggio
+        const savedTeamNames = localStorage.getItem('matchAnalysisTeamNames');
+        if (savedTeamNames) {
+            state.teamNames = JSON.parse(savedTeamNames);
         }
     } catch (e) {
         console.error('Errore nel caricamento:', e);
@@ -2044,6 +2065,7 @@ function loadStateFromLocalStorage() {
 
 // Export functions to global scope for inline event handlers
 window.deleteTag = deleteTag;
+window.updateTeamName = updateTeamName;
 window.toggleActionSelection = toggleActionSelection;
 window.updateActionTime = updateActionTime;
 window.updateActionComment = updateActionComment;

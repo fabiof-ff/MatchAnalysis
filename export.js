@@ -714,6 +714,7 @@ async function exportActionsToJSON() {
     const data = {
         exportDate: new Date().toISOString(),
         videoName: state.currentVideo ? state.currentVideo.name : null,
+        teamNames: state.teamNames,
         actions: state.actions
     };
     
@@ -729,7 +730,13 @@ async function exportActionsToJSON() {
     
     sortedActionsForTxt.forEach(action => {
         const timeStr = typeof formatTime === 'function' ? formatTime(action.startTime) : String(action.startTime);
-        const tagName = action.tag ? action.tag.name : "N/A";
+        
+        let tagName = action.tag ? action.tag.name : "N/A";
+        // Se il tag ha una squadra associata, aggiungi il nome della squadra
+        if (action.tag && action.tag.team && state.teamNames && state.teamNames[action.tag.team]) {
+            tagName = `[${state.teamNames[action.tag.team]}] ${tagName}`;
+        }
+        
         const comment = action.comment || "";
         txtContent += `${timeStr} ${tagName} ${comment}\n`;
     });
@@ -753,6 +760,14 @@ function importActionsFromJSON(file) {
 
             if (confirm(`Importare ${actions.length} azioni?\n\nQuesto sostituirà le azioni attuali.`)) {
                 state.actions = actions;
+                
+                // Se il JSON contiene i nomi squadre, importali
+                if (data.teamNames) {
+                    state.teamNames = data.teamNames;
+                    // Chiamiamo renderTags per aggiornare gli input dei nomi squadre
+                    if (typeof renderTags === 'function') renderTags();
+                }
+                
                 renderActions();
                 saveStateToLocalStorage();
                 showNotification('✅ Azioni importate con successo!', 'success');
@@ -767,6 +782,7 @@ function importActionsFromJSON(file) {
 async function exportTagsToJSON() {
     const data = {
         exportDate: new Date().toISOString(),
+        teamNames: state.teamNames,
         tags: state.tags
     };
     
@@ -788,6 +804,12 @@ function importTagsFromJSON(file) {
 
             if (confirm(`Importare ${tags.length} tag?\n\nQuesto sostituirà i tag attuali.`)) {
                 state.tags = tags;
+                
+                // Se il JSON contiene i nomi squadre, importali
+                if (data.teamNames) {
+                    state.teamNames = data.teamNames;
+                }
+                
                 renderTags();
                 populateTagFilter();
                 saveTagsToLocalStorage();
