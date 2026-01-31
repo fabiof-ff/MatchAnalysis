@@ -12,6 +12,7 @@
             <h1>⚽ Match Analysis - Analisi Video di Match Calcio</h1>
             <div class="tabs-navigation">
                 <button class="tab-btn active" data-tab="analysis">📊 Analisi Video</button>
+
                 <button class="tab-btn" data-tab="tools">🛠️ Strumenti Video</button>
             </div>
         </div>
@@ -57,6 +58,14 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
                         Script FFmpeg
                     </button>
+                    <button id="startPreviewFromMainBtn" title="Avvia Sequenza Anteprima" style="background: linear-gradient(135deg, #27ae60, #2ecc71); display: flex; align-items: center; gap: 5px; padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: 600;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Avvia Sequenza
+                    </button>
+                    <button id="stopPreviewMainBtn" title="Ferma Sequenza" style="background: linear-gradient(135deg, #e74c3c, #c0392b); display: none; align-items: center; gap: 5px; padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: 600;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
+                        Stop
+                    </button>
                 </div>
                 
                 <video id="videoPlayer" controls>
@@ -88,9 +97,12 @@
 
             <!-- Albero delle Azioni Taggate -->
             <div class="tagged-actions-section">
-                <div class="tagged-actions-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h2 style="margin: 0;">Azioni Taggate</h2>
-                    <div class="actions-toolbar" style="margin: 0; display: flex; gap: 5px; flex-wrap: wrap;">
+                <div class="tagged-actions-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0; min-width: fit-content;">Azioni Taggate</h2>
+                    <div class="actions-toolbar" style="margin: 0; display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button id="filterSelectedBtn" onclick="toggleSelectedFilter()" title="Mostra solo selezionate" style="padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer; background: #95a5a6; color: white;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </button>
                         <button id="collapseAllBtn" title="Compatta/Espandi Tutti" style="padding: 6px 10px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                         </button>

@@ -11,8 +11,17 @@ const state = {
     markedEnd: null,
     selectedActions: new Set(),
     filterTags: new Set(), // Filtro multiplo per tag
+    filterSelected: false, // Filtro azioni selezionate
+    filterFlag: null, // Filtro per flag (positive/negative/null)
     customOrder: [], // Ordinamento personalizzato delle azioni selezionate
     activeAction: null // Azione attualmente controllata dallo slider
+};
+
+// Sequence Playback Logic (Main Player)
+let previewState = {
+    isPlaying: false,
+    currentIndex: 0,
+    selectedActions: []
 };
 
 // Initialize App
@@ -25,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     renderTags();
     renderActions();
+    updateFlagFilterBtn();
+    updateSelectedFilterBtn();
     // IMPORTANTE: setupActionsListeners DOPO il rendering
     setupActionsListeners();
     console.log('App inizializzata - Tags:', state.tags.length);
@@ -109,6 +120,21 @@ function setupEventListeners() {
     if (newTagName) {
         newTagName.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addNewTag();
+        });
+    }
+
+    // Preview sequence from main tab
+    const startPreviewFromMainBtn = document.getElementById('startPreviewFromMainBtn');
+    if (startPreviewFromMainBtn) {
+        startPreviewFromMainBtn.addEventListener('click', () => {
+            startPreviewSequence();
+        });
+    }
+
+    const stopPreviewMainBtn = document.getElementById('stopPreviewMainBtn');
+    if (stopPreviewMainBtn) {
+        stopPreviewMainBtn.addEventListener('click', () => {
+            stopPreview();
         });
     }
     
@@ -370,6 +396,14 @@ function formatTime(seconds) {
 function updateVideoTime() {
     const videoPlayer = document.getElementById('videoPlayer');
     document.getElementById('currentTime').textContent = formatTime(videoPlayer.currentTime);
+
+    // Sequence playback logic
+    if (previewState && previewState.isPlaying) {
+        const currentAction = previewState.selectedActions[previewState.currentIndex];
+        if (currentAction && videoPlayer.currentTime >= currentAction.endTime) {
+            playNextInPreview();
+        }
+    }
 }
 
 function updateDuration() {
@@ -711,6 +745,11 @@ function renderActions() {
         filteredActions = filteredActions.filter(a => state.filterTags.has(a.tag.id));
     }
     
+    // Filtro per Selezionate
+    if (state.filterSelected) {
+        filteredActions = filteredActions.filter(a => state.selectedActions.has(a.id));
+    }
+    
     // Filtro per Flag (v/x)
     if (state.filterFlag === 'positive') {
         filteredActions = filteredActions.filter(a => a.positive);
@@ -960,16 +999,12 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 <input type="checkbox" class="action-checkbox" 
                        ${state.selectedActions.has(action.id) ? 'checked' : ''}
                        onchange="toggleActionSelection('${action.id}')">
-                <div class="action-info">
-                    <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
-                    <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
-                </div>
                 <div class="action-flags">
                     <button class="action-flag-btn ${action.positive ? 'active' : ''}" 
                             title="Positivo" 
                             style="color: #27ae60; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
                             onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'positive')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </button>
@@ -977,11 +1012,15 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                             title="Negativo" 
                             style="color: #e74c3c; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
                             onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'negative')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
+                </div>
+                <div class="action-info">
+                    <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
+                    <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
                 </div>
                 <div class="action-controls-btns">
                     <button class="btn-play" title="Play" onclick="event.stopPropagation(); playAction('${action.id}')">
@@ -1474,6 +1513,8 @@ function updateActionComment(actionId, comment) {
 }
 
 function playAction(actionId) {
+    if (previewState.isPlaying) stopPreview();
+    
     const action = state.actions.find(a => a.id === actionId);
     if (!action) return;
     
@@ -1549,6 +1590,25 @@ function toggleFlagFilterPanel() {
     
     updateFlagFilterBtn();
     renderActions();
+}
+
+function toggleSelectedFilter() {
+    state.filterSelected = !state.filterSelected;
+    updateSelectedFilterBtn();
+    renderActions();
+}
+
+function updateSelectedFilterBtn() {
+    const btn = document.getElementById('filterSelectedBtn');
+    if (!btn) return;
+    
+    if (state.filterSelected) {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Solo Selezionate';
+        btn.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
+    } else {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Tutte';
+        btn.style.background = '#95a5a6';
+    }
 }
 
 function updateFlagFilterBtn() {
@@ -1790,4 +1850,69 @@ function showNotification(message, type = 'info') {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
     }, 4000);
+}
+
+// Sequence Playback Logic (Main Player)
+function startPreviewSequence() {
+    // Collect and sort selected actions
+    previewState.selectedActions = state.actions
+        .filter(a => state.selectedActions.has(a.id))
+        .sort((a, b) => a.startTime - b.startTime);
+
+    if (previewState.selectedActions.length === 0) {
+        alert("Seleziona almeno un'azione per avviare la sequenza.");
+        return;
+    }
+
+    previewState.currentIndex = 0;
+    previewState.isPlaying = true;
+
+    // UI Updates
+    document.getElementById('startPreviewFromMainBtn').style.display = 'none';
+    document.getElementById('stopPreviewMainBtn').style.display = 'flex';
+
+    playPreviewIndex(0);
+}
+
+function playPreviewIndex(index) {
+    if (index >= previewState.selectedActions.length) {
+        stopPreview();
+        return;
+    }
+    
+    previewState.currentIndex = index;
+    const action = previewState.selectedActions[index];
+    const videoPlayer = document.getElementById('videoPlayer');
+    
+    videoPlayer.currentTime = action.startTime;
+    videoPlayer.play();
+    
+    // Highlight active action in main list if visible
+    document.querySelectorAll('.action-item').forEach(item => {
+        item.classList.toggle('active-action', item.dataset.id === action.id);
+    });
+}
+
+function playNextInPreview() {
+    previewState.currentIndex++;
+    if (previewState.currentIndex < previewState.selectedActions.length) {
+        playPreviewIndex(previewState.currentIndex);
+    } else {
+        stopPreview();
+    }
+}
+
+function stopPreview() {
+    previewState.isPlaying = false;
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.pause();
+
+    // UI Updates
+    document.getElementById('startPreviewFromMainBtn').style.display = 'flex';
+    document.getElementById('stopPreviewMainBtn').style.display = 'none';
+
+    // Remove highlights
+    document.querySelectorAll('.action-item').forEach(item => {
+        item.classList.remove('active-action');
+    });
 }
