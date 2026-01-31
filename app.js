@@ -1527,12 +1527,14 @@ function selectAllActions() {
     });
     
     renderActions();
+    saveStateToLocalStorage();
     showNotification(`✅ ${actionsToSelect.length} azioni selezionate`, 'success');
 }
 
 function deselectAllActions() {
     state.selectedActions.clear();
     renderActions();
+    saveStateToLocalStorage();
     showNotification('✅ Selezione cancellata', 'info');
 }
 
@@ -1555,6 +1557,7 @@ function toggleActionSelection(actionId) {
         state.selectedActions.add(actionId);
     }
     renderActions();
+    saveStateToLocalStorage();
 }
 
 function updateActionTime(actionId, type, value) {
@@ -2000,6 +2003,15 @@ function loadActionsFromLocalStorage() {
         const saved = localStorage.getItem('matchAnalysisActions');
         if (saved) {
             state.actions = JSON.parse(saved);
+            
+            // Ripristina lo stato delle selezioni (checkbox) dalle azioni caricate
+            state.selectedActions.clear();
+            state.actions.forEach(action => {
+                if (action.selected) {
+                    state.selectedActions.add(action.id);
+                }
+            });
+            
             console.log('Azioni caricate:', state.actions.length);
         }
         
@@ -2024,7 +2036,12 @@ function loadActionsFromLocalStorage() {
 function saveStateToLocalStorage() {
     saveTagsToLocalStorage();
     try {
-        localStorage.setItem('matchAnalysisActions', JSON.stringify(state.actions));
+        // Aggiungiamo lo stato della selezione alle azioni prima di salvarle
+        const actionsToSave = state.actions.map(action => ({
+            ...action,
+            selected: state.selectedActions.has(action.id)
+        }));
+        localStorage.setItem('matchAnalysisActions', JSON.stringify(actionsToSave));
         localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
         localStorage.setItem('matchAnalysisTeamNames', JSON.stringify(state.teamNames));
     } catch (e) {

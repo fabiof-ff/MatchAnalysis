@@ -542,28 +542,46 @@ echo.
         };
 
         // Prepara il testo da sovrapporre (Tag + Flag + Commento)
-        let overlayText = action.tag.name.toUpperCase();
-        let fontColor = "white";
+        // Requisiti: v -> OK (lime), x -> KO (red). Arial, Bottom-Left.
+        let statusText = '';
+        let statusColor = 'white';
+        let tagName = action.tag.name.toUpperCase();
+        let commentText = (action.comment && action.comment.trim() && action.type !== 'image') ? ` - ${action.comment}` : '';
         
         if (action.positive) {
-            overlayText = "(v) " + overlayText;
-            fontColor = "lime";
+            statusText = 'OK ';
+            statusColor = 'lime';
         } else if (action.negative) {
-            overlayText = "(x) " + overlayText;
-            fontColor = "red";
-        }
-        
-        if (action.comment && action.comment.trim() && action.type !== 'image') {
-            overlayText += " - " + action.comment;
+            statusText = 'KO ';
+            statusColor = 'red';
         }
 
-        const safeOverlayText = escapeFFmpegText(overlayText);
+        const safeStatusText = escapeFFmpegText(statusText);
+        const safeMainText = escapeFFmpegText(tagName + commentText);
+        const fullTextForBox = escapeFFmpegText(statusText + tagName + commentText);
 
         ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
         
-        // Estrazione con sovrapposizione testo
-        // Se usiamo xfade, aggiungiamo pad per l'audio per evitare problemi di sincronizzazione e reset dei timestamp
-        let vf = `drawtext=text='${safeOverlayText}':fontcolor=${fontColor}:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=(w-text_w)/2:y=h-th-30`;
+        // Filtro VF con allineamento in basso a sinistra e carattere Arial
+        // - Per avere un box UNICO, disegniamo prima un box vuoto basato sul testo totale,
+        //   oppure disegniamo il box solo per il testo principale e sovrapponiamo i due drawtext.
+        //   La soluzione più pulita per box unico è:
+        //   1. Disegnare il box con il testo completo (ma trasparente)
+        //   2. Disegnare OK/KO sopra senza box
+        //   3. Disegnare il resto sopra senza box
+        
+        let vf = "";
+        if (statusText) {
+            // Primo box per OK/KO
+            // Usiamo ascent e descent fissi per garantire che l'altezza del box sia costante indipendentemente dal testo
+            vf += `drawtext=text='${safeStatusText}':font='Arial':fontcolor=${statusColor}:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-45-ascent, `;
+            // Secondo box per il Tag/Commento
+            // x fissa a 95 per stare vicino, y identica per avere stessa altezza e allineamento
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=95:y=h-45-ascent`;
+        } else {
+            // Solo testo principale
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-45-ascent`;
+        }
         
         // AGGIUNTO: -r 30 per garantire coerenza tra tutti i segmenti (video e immagini)
         ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${vf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
@@ -715,7 +733,10 @@ async function exportActionsToJSON() {
         exportDate: new Date().toISOString(),
         videoName: state.currentVideo ? state.currentVideo.name : null,
         teamNames: state.teamNames,
-        actions: state.actions
+        actions: state.actions.map(action => ({
+            ...action,
+            selected: state.selectedActions.has(action.id)
+        }))
     };
     
     // Esporta JSON
@@ -789,6 +810,14 @@ function importActionsFromJSON(file) {
 
             if (confirm(`Importare ${actions.length} azioni?\n\nQuesto sostituirà le azioni attuali.`)) {
                 state.actions = actions;
+
+                // Ripristina lo stato delle selezioni (checkbox)
+                state.selectedActions.clear();
+                actions.forEach(action => {
+                    if (action.selected) {
+                        state.selectedActions.add(action.id);
+                    }
+                });
                 
                 // Se il JSON contiene i nomi squadre, importali
                 if (data.teamNames) {
