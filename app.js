@@ -1816,11 +1816,13 @@ function updateSelectedFilterBtn() {
     if (!btn) return;
     
     if (state.filterSelected) {
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Solo Selezionate';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
         btn.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
+        btn.title = "Mostra Tutte";
     } else {
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Tutte';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
         btn.style.background = '#95a5a6';
+        btn.title = "Mostra solo selezionate";
     }
 }
 
@@ -1829,14 +1831,17 @@ function updateFlagFilterBtn() {
     if (!btn) return;
     
     if (state.filterFlag === 'positive') {
-        btn.innerHTML = '🔍 Flag: (v) OK';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
         btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+        btn.title = "Filtro Flag: OK (Click per KO)";
     } else if (state.filterFlag === 'negative') {
-        btn.innerHTML = '🔍 Flag: (x) KO';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
         btn.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+        btn.title = "Filtro Flag: KO (Click per Tutti)";
     } else {
-        btn.innerHTML = '🔍 Flag: Tutti';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
         btn.style.background = 'linear-gradient(135deg, #34495e, #2c3e50)';
+        btn.title = "Filtra per Flag (Click per OK)";
     }
 }
 
