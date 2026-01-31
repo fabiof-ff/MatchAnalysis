@@ -762,16 +762,18 @@ function createAction() {
 }
 
 function addImageAction(file) {
+    const previewUrl = URL.createObjectURL(file);
     const action = {
         id: 'image_' + Date.now(),
         type: 'image',
         fileName: file.name,
-        duration: 5.0, // Durata predefinita 5 secondi
+        duration: 3.0, // Durata predefinita 3 secondi
         startTime: 0, 
-        endTime: 5.0,
+        endTime: 3.0,
+        previewUrl: previewUrl,
         tag: {
-            id: 'tag_image',
-            name: 'IMMAGINE',
+            id: 'tag_image_' + Date.now(), // ID Unico per blocco separato
+            name: 'IMMAGINE: ' + file.name,
             color: '#3498db',
             isImage: true
         },
@@ -790,7 +792,7 @@ function addImageAction(file) {
     renderActions();
     saveStateToLocalStorage();
     
-    showNotification(`✅ Immagine "${file.name}" aggiunta. Ricorda di metterla nella cartella del video per l'export!`, 'success', 5000);
+    showNotification(`✅ Immagine "${file.name}" aggiunta.`, 'success', 3000);
 }
 
 // Actions Rendering
@@ -1083,8 +1085,17 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                         </svg>
                     </button>
                     ` : `
-                    <div style="color: #3498db; padding: 2px; display: flex; align-items: center;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <div class="image-preview-container">
+                        ${action.previewUrl ? `
+                            <img src="${action.previewUrl}" class="image-preview-thumb" alt="Preview">
+                            <div class="image-preview-overlay">
+                                <img src="${action.previewUrl}">
+                            </div>
+                        ` : `
+                            <div style="color: #3498db; padding: 2px; display: flex; align-items: center;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                        `}
                     </div>
                     `}
                 </div>
