@@ -505,7 +505,7 @@ echo.
             fontColor = "red";
         }
         
-        if (action.comment && action.comment.trim()) {
+        if (action.comment && action.comment.trim() && action.type !== 'image') {
             overlayText += " - " + action.comment;
         }
 

@@ -761,7 +761,7 @@ function addImageAction(file) {
         previewUrl: previewUrl,
         tag: {
             id: 'tag_image_' + Date.now(), // ID Unico per blocco separato
-            name: 'IMMAGINE: ' + file.name,
+            name: file.name,
             color: '#3498db',
             isImage: true
         },
@@ -1103,18 +1103,22 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                     <button class="btn-stop" title="Stop" onclick="event.stopPropagation(); stopAction()" style="background: #95a5a6; color: white;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                     </button>
+                    ${!isImage ? `
                     <button class="btn-comment-toggle ${action.comment ? 'has-comment' : ''}" title="Commento" onclick="event.stopPropagation(); window.toggleActionComment('${action.id}')" style="background: #3498db; color: white;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                     </button>
+                    ` : ''}
                     <button class="btn-delete" title="Elimina" onclick="event.stopPropagation(); deleteAction('${action.id}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                 </div>
+                ${!isImage ? `
                 <div class="action-comment-input" style="display: none;">
                     <input type="text" placeholder="Aggiungi un commento..." 
                            value="${action.comment || ''}"
                            onchange="updateActionComment('${action.id}', this.value)">
                 </div>
+                ` : ''}
             `;
             
             // Click per attivare l'azione e controllare gli slider
@@ -1686,6 +1690,35 @@ window.toggleActionComment = function(actionId) {
         commentField.style.display = 'none';
         toggleBtn.classList.remove('active');
     }
+};
+
+/**
+ * Toggle della visibilità di TUTTI i commenti
+ */
+window.toggleAllComments = function() {
+    const allCommentFields = document.querySelectorAll('.action-comment-input');
+    const allToggleBtns = document.querySelectorAll('.btn-comment-toggle');
+    
+    // Determina se mostrare o nascondere in base al primo elemento (se esiste)
+    let shouldShow = true;
+    if (allCommentFields.length > 0) {
+        shouldShow = allCommentFields[0].style.display === 'none';
+    }
+    
+    allCommentFields.forEach(field => {
+        field.style.display = shouldShow ? 'block' : 'none';
+    });
+    
+    allToggleBtns.forEach(btn => {
+        if (shouldShow) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const msg = shouldShow ? '✅ Commenti mostrati' : '✅ Commenti nascosti';
+    showNotification(msg, 'success', 2000);
 };
 
 function deleteAction(actionId) {
