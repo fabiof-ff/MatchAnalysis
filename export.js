@@ -545,7 +545,17 @@ echo.
         // Requisiti: v -> OK (lime), x -> KO (red). Arial, Bottom-Left.
         let statusText = '';
         let statusColor = 'white';
-        let tagName = action.tag.name.toUpperCase();
+        
+        // Nome Tag + Nome Squadra (se presente)
+        let teamSuffix = "";
+        if (action.tag.team && state.teamNames) {
+            const teamName = state.teamNames[action.tag.team];
+            if (teamName) {
+                teamSuffix = ` - ${teamName.toUpperCase()}`;
+            }
+        }
+        
+        let tagName = action.tag.name.toUpperCase() + teamSuffix;
         let commentText = (action.comment && action.comment.trim() && action.type !== 'image') ? ` - ${action.comment}` : '';
         
         if (action.positive) {
@@ -560,7 +570,7 @@ echo.
         const safeMainText = escapeFFmpegText(tagName + commentText);
         const fullTextForBox = escapeFFmpegText(statusText + tagName + commentText);
 
-        ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
+        ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${tagName} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
         
         // Filtro VF con allineamento in basso a sinistra e carattere Arial
         // - Per avere un box UNICO, disegniamo prima un box vuoto basato sul testo totale,
@@ -685,7 +695,13 @@ echo.
         if (action.type === 'image') {
             ffmpegScript += `echo   ${i+1}. [IMMAGINE] ${action.fileName} (${action.duration}s)\n`;
         } else {
-            ffmpegScript += `echo   ${i+1}. ${action.tag.name} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
+            let teamSuffix = "";
+            if (action.tag && action.tag.team && state.teamNames) {
+                const tName = state.teamNames[action.tag.team];
+                if (tName) teamSuffix = ` - ${tName.toUpperCase()}`;
+            }
+            const displayTagName = (action.tag ? action.tag.name.toUpperCase() : "TAG") + teamSuffix;
+            ffmpegScript += `echo   ${i+1}. ${displayTagName} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
             if (action.comment && action.comment.trim()) {
                 ffmpegScript += ` - ${action.comment.replace(/["|']/g, '')}`;
             }
