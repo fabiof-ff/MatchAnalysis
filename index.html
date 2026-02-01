@@ -25,10 +25,10 @@
                 <button class="collapse-section-btn" onclick="toggleTagsPanel()" title="Compatta/Espandi">«</button>
                 <div class="collapsed-label">TAGS</div>
                 <div class="tag-panel" style="padding: 10px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 15px; position: relative;">
-                        <div style="width: 30px;"></div> <!-- Spacer for collapse button -->
-                        <h2 style="margin: 0; flex: 1; text-align: center;">Pannello Tags</h2>
-                        <div class="actions-toolbar" style="margin: 0; display: flex; gap: 5px;">
+                    <div class="tag-creation" style="display: flex; align-items: center; gap: 5px; margin-bottom: 12px;">
+                        <div style="width: 25px; flex-shrink: 0;"></div> <!-- Spacer per il pulsante collapse -->
+                        
+                        <div class="actions-toolbar" style="margin: 0; display: flex; gap: 4px; flex-shrink: 0;">
                             <button id="exportTagsJSONBtn" title="Esporta Tag JSON" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; color: white;">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                             </button>
@@ -37,15 +37,16 @@
                                 <input type="file" id="importTagsJSONInput" accept=".json" style="display: none;">
                             </label>
                         </div>
-                    </div>
-                    <div class="tag-creation">
-                        <input type="text" id="newTagName" placeholder="Nome tag..." style="flex: 1;">
-                        <input type="color" id="tagColor" value="#3498db">
-                        <select id="tagPhaseInput" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.8em;">
+
+                        <div style="height: 20px; width: 1px; background: #ccc; margin: 0 2px; flex-shrink: 0;"></div>
+
+                        <input type="text" id="newTagName" placeholder="Tag..." style="flex: 1; min-width: 50px;">
+                        <input type="color" id="tagColor" value="#3498db" style="flex-shrink: 0;">
+                        <select id="tagPhaseInput" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.85em; flex-shrink: 0;">
                             <option value="offensiva">🔥 OFF</option>
                             <option value="difensiva">🛡️ DIF</option>
                         </select>
-                        <button id="addTagBtn">+</button>
+                        <button id="addTagBtn" style="flex-shrink: 0;">+</button>
                     </div>
                     
                     <div class="tags-container-split" style="display: flex; gap: 10px;">
@@ -66,7 +67,6 @@
 
                 <!-- Nuovo Sottopannello: Eventi Match -->
                 <div class="tag-panel" style="padding: 10px; border-top: 2px solid #ddd; flex: 1; display: flex; flex-direction: column; min-height: 0;">
-                    <h3 style="margin: 0 0 10px 0; font-size: 1.1em; text-align: center; color: #34495e; text-transform: uppercase; letter-spacing: 1px;">Eventi Match</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 0.8em; color: #7f8c8d;">
                         <input type="text" id="teamNameA" value="SQUADRA A" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1.1em; width: 100%; outline: none; border-radius: 4px; padding: 2px;" onchange="updateTeamName('A', this.value)">
                         <input type="text" id="teamNameB" value="SQUADRA B" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1.1em; width: 100%; outline: none; border-radius: 4px; padding: 2px;" onchange="updateTeamName('B', this.value)">
@@ -172,11 +172,7 @@
             <div class="tagged-actions-section" id="actionsSection">
                 <button class="collapse-section-btn" onclick="toggleActionsPanel()" title="Compatta/Espandi">»</button>
                 <div class="collapsed-label">AZIONI TAGGATE</div>
-                <div class="tagged-actions-header" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-                    <div style="display: flex; align-items: center; position: relative; width: 100%;">
-                        <h2 style="margin: 0; flex: 1; text-align: center;">Azioni Taggate</h2>
-                        <div style="width: 30px;"></div> <!-- Spacer per bilanciare il bottone a destra -->
-                    </div>
+                <div class="tagged-actions-header" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 5px;">
                     <!-- Totale tempo azioni selezionate -->
                     <div id="totalSelectedTime" style="text-align: center; font-size: 0.8em; color: #2c3e50; font-weight: bold; background: #e8f4f8; padding: 4px 8px; border-radius: 4px; margin-bottom: 5px; border: 1px solid #bde0eb; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
                         <span id="totalOverall" title="Totale complessivo selezionato">TOT: 00:00:00</span>
