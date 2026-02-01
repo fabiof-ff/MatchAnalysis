@@ -15,6 +15,7 @@ const state = {
     filterFlag: null, // Filtro per flag (positive/negative/null)
     customOrder: [], // Ordinamento personalizzato delle azioni selezionate
     activeAction: null, // Azione attualmente controllata dallo slider
+    collapsedGroups: new Set(), // Tag ID dei gruppi collassati nel pannello azioni
     teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' } // Nomi squadre modificabili
 };
 
@@ -1146,14 +1147,17 @@ function toggleCollapseAll() {
     
     groups.forEach(group => {
         const toggle = group.querySelector('.collapse-toggle');
+        const tagId = group.dataset.tagId;
         if (hasExpanded) {
             // Compatta tutti
             group.classList.add('collapsed');
             if (toggle) toggle.textContent = '▶';
+            if (tagId) state.collapsedGroups.add(tagId);
         } else {
             // Espandi tutti
             group.classList.remove('collapsed');
             if (toggle) toggle.textContent = '▼';
+            if (tagId) state.collapsedGroups.delete(tagId);
         }
     });
     
@@ -1187,6 +1191,9 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
     sortedGroups.forEach(([tagId, group]) => {
         const groupContainer = document.createElement('div');
         groupContainer.className = 'tag-group';
+        if (state.collapsedGroups.has(tagId)) {
+            groupContainer.classList.add('collapsed');
+        }
         groupContainer.dataset.tagId = tagId;
         groupContainer.dataset.groupIndex = groupIndex++;
         
@@ -1196,19 +1203,26 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
         groupHeader.draggable = true;
         groupHeader.style.backgroundColor = group.tag.color + '20';
         groupHeader.style.borderLeft = `4px solid ${group.tag.color}`;
+
+        const isCollapsed = state.collapsedGroups.has(tagId);
         groupHeader.innerHTML = `
             <span class="drag-handle">⋮⋮</span>
             <span class="group-tag-name" style="color: ${group.tag.color}; font-weight: 600;">${group.tag.name}</span>
             <span class="group-count">(${group.actions.length} azioni)</span>
-            <span class="collapse-toggle">▼</span>
+            <span class="collapse-toggle">${isCollapsed ? '▶' : '▼'}</span>
         `;
         
         // Click per collapse/expand
         const collapseToggle = groupHeader.querySelector('.collapse-toggle');
         collapseToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            groupContainer.classList.toggle('collapsed');
-            collapseToggle.textContent = groupContainer.classList.contains('collapsed') ? '▶' : '▼';
+            const nowCollapsed = groupContainer.classList.toggle('collapsed');
+            if (nowCollapsed) {
+                state.collapsedGroups.add(tagId);
+            } else {
+                state.collapsedGroups.delete(tagId);
+            }
+            collapseToggle.textContent = nowCollapsed ? '▶' : '▼';
         });
         
         // Drag and drop per il gruppo intero
