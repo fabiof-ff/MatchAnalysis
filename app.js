@@ -933,7 +933,7 @@ function addImageAction(file) {
     renderActions();
     saveStateToLocalStorage();
     
-    showNotification(`✅ Immagine "${file.name}" aggiunta.`, 'success', 3000);
+    showNotification(`✅ Immagine "${file.name}" aggiunta. Ricorda di copiarla nella cartella del video per l'export!`, 'success', 5000);
 }
 
 // Actions Rendering

@@ -480,10 +480,20 @@ async function exportActionsToFFmpeg() {
         ? state.currentVideo.name 
         : 'VIDEO_NON_TROVATO.mp4';
     
-    // Recupera dimensioni video per eventuali immagini
+    // Recupera dimensioni video per eventuali immagini (con fallback robusto)
     const videoPlayer = document.getElementById('videoPlayer');
-    const vWidth = videoPlayer.videoWidth || 1920;
-    const vHeight = videoPlayer.videoHeight || 1080;
+    let vWidth = videoPlayer.videoWidth;
+    let vHeight = videoPlayer.videoHeight;
+    
+    // Se le dimensioni non sono ancora caricate dal player, prova dallo stato
+    if (!vWidth || !vHeight) {
+        vWidth = 1920;
+        vHeight = 1080;
+    }
+    
+    // Assicuriamoci che siano numeri pari per FFmpeg
+    const safeWidth = Math.floor(vWidth / 2) * 2;
+    const safeHeight = Math.floor(vHeight / 2) * 2;
 
     // Leggi durata sfumatura dal selettore
     const xfadeDuration = parseFloat(document.getElementById('xfadeDuration')?.value || "0");
@@ -572,15 +582,14 @@ echo.
         const barStr = "[" + "#".repeat(filled) + ".".repeat(empty) + "]";
 
         if (action.type === 'image') {
-            const fileNameSafe = action.fileName.replace(/\|/g, '^|');
-            ffmpegScript += `echo ${barStr} ${progress}%% - [${i+1}/${selectedActionsList.length}] Elaborazione Immagine: ${fileNameSafe} (%TIME%)\n`;
-            // Verifica se il file esiste (echo di avviso nello script)
-            ffmpegScript += `if not exist "${action.fileName}" echo ATTENZIONE: Immagine "${fileNameSafe}" non trovata!\n`;
+            const fileNameSafe = action.fileName.replace(/\|/g, '^|').replace(/%/g, '%%');
+            const batchSafeInput = action.fileName.replace(/%/g, '%%');
             
-            // Crea un segmento video dall'immagine
-            // Usiamo scale e pad per assicurarci che l'immagine entri nel formato del video senza distorsioni
-            // AGGIUNTO: -r 30 per pareggiare il framerate del video originale ed evitare errori xfade
-            ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${action.fileName}" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${vWidth}:${vHeight}:force_original_aspect_ratio=decrease,pad=${vWidth}:${vHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p" -c:a aac -b:a 128k -shortest "segment_${i}.mp4"\n`;
+            ffmpegScript += `echo ${barStr} ${progress}%% - [${i+1}/${selectedActionsList.length}] Elaborazione Immagine: ${fileNameSafe} (%TIME%)\n`;
+            ffmpegScript += `if not exist "${batchSafeInput}" echo ATTENZIONE: Immagine "${fileNameSafe}" non trovata!\n`;
+            
+            // Crea un segmento video dall'immagine con gli STESSI parametri del video
+            ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -c:a aac -b:a 128k -ar 44100 -ac 2 "segment_${i}.mp4"\n`;
             ffmpegScript += `if errorlevel 1 goto error\n\n`;
             return;
         }
@@ -647,8 +656,10 @@ echo.
             vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=20:y=h-40`;
         }
         
-        // AGGIUNTO: -r 30 per garantire coerenza tra tutti i segmenti (video e immagini)
-        ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${vf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+        // Aggiungiamo scale, pad e setsar al video clip per renderlo IDENTICO ai segmenti immagine
+        const fullVf = `scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1,${vf}`;
+
+        ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -ar 44100 -ac 2 -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
@@ -668,13 +679,9 @@ echo.
             effectiveXfades.push(Math.min(xfadeDuration, selectedActionsList[i-1].duration, selectedActionsList[i].duration));
         }
 
-        // Prima clip: base + fade out alla fine
+        // Prima clip: base
         inputs += `-i "segment_0.mp4" `;
-        let v0Filt = `settb=AVTB,setpts=PTS-STARTPTS`;
-        if (effectiveXfades.length > 0) {
-            v0Filt += `,fade=out:st=${(selectedActionsList[0].duration - effectiveXfades[0]).toFixed(3)}:d=${effectiveXfades[0].toFixed(3)}`;
-        }
-        filterParts.push(`[0:v]${v0Filt}[v0]`);
+        filterParts.push(`[0:v]settb=AVTB,setpts=PTS-STARTPTS[v0]`);
         filterParts.push(`[0:a]atrim=0,asetpts=PTS-STARTPTS[a0]`);
         
         let offset = selectedActionsList[0].duration;
@@ -687,22 +694,16 @@ echo.
             const aOut = `a${i}`;
             
             const transDur = effectiveXfades[i-1];
-            const nextTransDur = (i < effectiveXfades.length) ? effectiveXfades[i] : 0;
             
-            // Applica fade in all'inizio e (se non è l'ultima) fade out alla fine della clip corrente
-            let viFilt = `settb=AVTB,setpts=PTS-STARTPTS,fade=in:st=0:d=${transDur.toFixed(3)}`;
-            if (nextTransDur > 0) {
-                viFilt += `,fade=out:st=${(selectedActionsList[i].duration - nextTransDur).toFixed(3)}:d=${nextTransDur.toFixed(3)}`;
-            }
-            
-            // Porta i timestamp a zero per ogni input clip e applica i fade
-            filterParts.push(`[${i}:v]${viFilt}[${vIn}]`);
+            // Porta i timestamp a zero per ogni input clip
+            filterParts.push(`[${i}:v]settb=AVTB,setpts=PTS-STARTPTS[${vIn}]`);
             filterParts.push(`[${i}:a]atrim=0,asetpts=PTS-STARTPTS[${aIn}]`);
             
             // Calcola l'offset: dove INIZIA la sfumatura sulla clip corrente accumulata
             offset -= transDur;
             
             // Applica xfade video e acrossfade audio
+            // xfade gestisce internamente la sfumatura tra i due stream all'offset indicato
             filterParts.push(`[${currentOut}][${vIn}]xfade=transition=fade:duration=${transDur.toFixed(3)}:offset=${offset.toFixed(3)}[${vOut}]`);
             filterParts.push(`[${currentAudioOut}][${aIn}]acrossfade=d=${transDur.toFixed(3)}[${aOut}]`);
             
