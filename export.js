@@ -465,7 +465,7 @@ async function exportActionsToFFmpeg() {
     });
     
     // Generate FFmpeg commands
-    const videoFileName = (state.currentVideo && state.currentVideo.name) 
+    const videoFileName = (state.currentVideo && state.currentVideo.name && state.currentVideo.name.trim()) 
         ? state.currentVideo.name 
         : 'VIDEO_NON_TROVATO.mp4';
     
@@ -484,6 +484,9 @@ async function exportActionsToFFmpeg() {
 
     let ffmpegScript = `@echo off
 chcp 65001 > nul
+set "INPUT_VIDEO=${videoFileName}"
+set "OUTPUT_VIDEO=highlight_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4"
+
 REM Script generato da Match Analysis
 REM Video di sintesi con ${selectedActionsList.length} clip
 REM Durata totale stimata del video finale: ${durationStr}
@@ -498,15 +501,11 @@ echo - Numero di clip: ${selectedActionsList.length}
 echo - Durata video finale: ${durationStr}
 echo - Data/Ora inizio: %TIME%
 echo.
-echo NOTA: Il tempo di elaborazione dipende dalla potenza del tuo PC. 
-echo Di solito richiede circa il 30-50%% della durata totale del video finalizzato.
+echo File input: "%INPUT_VIDEO%"
 echo.
 set "START_TIME=%TIME%"
 echo Questo script richiede FFmpeg installato sul PC.
 echo.
-
-set "INPUT_VIDEO=${videoFileName}"
-set "OUTPUT_VIDEO=highlight_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4"
 
 REM Verifica che il file video esista
 if not exist "%INPUT_VIDEO%" (
@@ -579,10 +578,10 @@ echo.
         let commentText = (action.comment && action.comment.trim() && action.type !== 'image') ? ` | ${action.comment}` : '';
         
         if (action.positive) {
-            statusText = 'OK | ';
+            statusText = '[OK] | ';
             statusColor = 'lime';
         } else if (action.negative) {
-            statusText = 'KO | ';
+            statusText = '[X] | ';
             statusColor = 'red';
         }
 
