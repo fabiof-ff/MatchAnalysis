@@ -122,10 +122,28 @@
                         </div>
                     </div>
                     
-                    <div class="dual-range-wrapper">
-                        <div class="slider-track"></div>
-                        <input type="range" id="startTimeSlider" class="range-input" min="0" max="100" step="0.1" value="0">
-                        <input type="range" id="endTimeSlider" class="range-input" min="0" max="100" step="0.1" value="100">
+                    <div class="slider-controls-group" style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                        <div class="step-controls">
+                            <span>INIZIO</span>
+                            <div style="display: flex; gap: 2px;">
+                                <button id="startTimeMinus" class="step-btn" title="-0.5s Inizio">-</button>
+                                <button id="startTimePlus" class="step-btn" title="+0.5s Inizio">+</button>
+                            </div>
+                        </div>
+
+                        <div class="dual-range-wrapper" style="flex: 1;">
+                            <div class="slider-track"></div>
+                            <input type="range" id="startTimeSlider" class="range-input" min="0" max="100" step="0.1" value="0">
+                            <input type="range" id="endTimeSlider" class="range-input" min="0" max="100" step="0.1" value="100">
+                        </div>
+
+                        <div class="step-controls">
+                            <span>FINE</span>
+                            <div style="display: flex; gap: 2px;">
+                                <button id="endTimeMinus" class="step-btn" title="-0.5s Fine">-</button>
+                                <button id="endTimePlus" class="step-btn" title="+0.5s Fine">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

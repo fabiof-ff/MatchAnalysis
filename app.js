@@ -248,6 +248,34 @@ function setupEventListeners() {
                 updateActionTime(state.activeAction.id, 'end', parseFloat(endTimeSlider.value));
             }
         });
+
+        // Step buttons logic
+        const handleStep = (type, delta) => {
+            if (!state.activeAction) return;
+            const action = state.activeAction;
+            const currentValue = type === 'start' ? action.startTime : action.endTime;
+            
+            const videoPlayer = document.getElementById('videoPlayer');
+            const maxDuration = videoPlayer && videoPlayer.duration ? videoPlayer.duration : 3600;
+            
+            let newValue = currentValue + delta;
+            
+            // Clamp value
+            if (newValue < 0) newValue = 0;
+            if (newValue > maxDuration) newValue = maxDuration;
+            
+            updateActionTime(action.id, type, newValue);
+            
+            // Aggiorna il video player alla nuova posizione
+            if (videoPlayer && videoPlayer.src) {
+                videoPlayer.currentTime = type === 'start' ? state.activeAction.startTime : state.activeAction.endTime;
+            }
+        };
+
+        document.getElementById('startTimeMinus').addEventListener('click', () => handleStep('start', -0.5));
+        document.getElementById('startTimePlus').addEventListener('click', () => handleStep('start', 0.5));
+        document.getElementById('endTimeMinus').addEventListener('click', () => handleStep('end', -0.5));
+        document.getElementById('endTimePlus').addEventListener('click', () => handleStep('end', 0.5));
     }
     
     // Compress Video
