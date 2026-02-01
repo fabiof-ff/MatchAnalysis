@@ -204,33 +204,22 @@ header h1 {
     display: none !important;
 }
 
-.collapse-section-btn {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    z-index: 10;
+.toolbar-side-btn {
     background: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 4px 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-weight: bold;
     color: #666;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-size: 0.75em;
+    transition: all 0.2s;
 }
 
-.tagged-actions-section .collapse-section-btn {
-    right: 5px;
-    left: auto;
-}
-
-.collapse-section-btn:hover {
+.toolbar-side-btn:hover {
     background: #f0f0f0;
     color: #333;
+    border-color: #bbb;
 }
 
 .collapsed-label {
@@ -242,7 +231,7 @@ header h1 {
     font-size: 0.7em;
     height: 100%;
     text-align: center;
-    padding-top: 40px;
+    padding-top: 10px; /* Ridotto perché ora c'è padding-top sulla sezione stessa */
     letter-spacing: 2px;
 }
 

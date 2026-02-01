@@ -2405,30 +2405,34 @@ function refreshPreviewSequence() {
 function toggleTagsPanel() {
     const mainContent = document.getElementById('mainContent');
     const tagsSection = document.getElementById('tagsSection');
-    const btn = tagsSection.querySelector('.collapse-section-btn');
+    const btn = document.getElementById('toggleTagsSidebarBtn');
     
     tagsSection.classList.toggle('collapsed');
     mainContent.classList.toggle('tags-collapsed');
     
-    if (tagsSection.classList.contains('collapsed')) {
-        btn.textContent = '»';
-    } else {
-        btn.textContent = '«';
+    if (btn) {
+        if (tagsSection.classList.contains('collapsed')) {
+            btn.textContent = 'TAGS »';
+        } else {
+            btn.textContent = '« TAGS';
+        }
     }
 }
 
 function toggleActionsPanel() {
     const mainContent = document.getElementById('mainContent');
     const actionsSection = document.getElementById('actionsSection');
-    const btn = actionsSection.querySelector('.collapse-section-btn');
+    const btn = document.getElementById('toggleActionsSidebarBtn');
     
     actionsSection.classList.toggle('collapsed');
     mainContent.classList.toggle('actions-collapsed');
     
-    if (actionsSection.classList.contains('collapsed')) {
-        btn.textContent = '«';
-    } else {
-        btn.textContent = '»';
+    if (btn) {
+        if (actionsSection.classList.contains('collapsed')) {
+            btn.textContent = '« AZIONI';
+        } else {
+            btn.textContent = 'AZIONI »';
+        }
     }
 }
 
