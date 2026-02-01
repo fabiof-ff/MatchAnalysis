@@ -1745,7 +1745,7 @@ function updateMainSliders() {
     
     const videoPlayer = document.getElementById('videoPlayer');
     const maxDuration = videoPlayer && videoPlayer.duration ? videoPlayer.duration : 3600;
-    const rangeBuffer = 30; // 30 secondi di buffer intorno all'azione
+    const rangeBuffer = 5; // 5 secondi di buffer intorno all'azione
     
     const action = state.activeAction;
     // Calcoliamo un range comune per entrambi i cursori
