@@ -19,12 +19,15 @@
 
         <!-- Tab: Analisi Video -->
         <div class="tab-content active" id="analysis-tab">
-        <div class="main-content">
+        <div class="main-content" id="mainContent">
             <!-- Sezione Tags -->
-            <div class="tags-section">
+            <div class="tags-section" id="tagsSection">
+                <button class="collapse-section-btn" onclick="toggleTagsPanel()" title="Compatta/Espandi">«</button>
+                <div class="collapsed-label">TAGS</div>
                 <div class="tag-panel" style="padding: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h2 style="margin: 0;">Pannello Tags</h2>
+                    <div style="display: flex; align-items: center; margin-bottom: 15px; position: relative;">
+                        <div style="width: 30px;"></div> <!-- Spacer for collapse button -->
+                        <h2 style="margin: 0; flex: 1; text-align: center;">Pannello Tags</h2>
                         <div class="actions-toolbar" style="margin: 0; display: flex; gap: 5px;">
                             <button id="exportTagsJSONBtn" title="Esporta Tag JSON" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; color: white;">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -47,13 +50,13 @@
                     
                     <div class="tags-container-split" style="display: flex; gap: 10px;">
                         <div class="phase-group" style="flex: 1;">
-                            <h3 style="margin: 0 0 8px 0; font-size: 0.75em; color: #27ae60; font-weight: 800; border-bottom: 2px solid #27ae60; padding-bottom: 2px;">FASE OFFENSIVA</h3>
+                            <h3 style="margin: 0 0 8px 0; font-size: 0.9em; color: #27ae60; font-weight: 800; border-bottom: 2px solid #27ae60; padding-bottom: 2px; text-align: center;">FASE OFFENSIVA</h3>
                             <div class="tag-list" id="tagListOffensive">
                                 <!-- Tags offensive -->
                             </div>
                         </div>
                         <div class="phase-group" style="flex: 1;">
-                            <h3 style="margin: 0 0 8px 0; font-size: 0.75em; color: #e74c3c; font-weight: 800; border-bottom: 2px solid #e74c3c; padding-bottom: 2px;">FASE DIFENSIVA</h3>
+                            <h3 style="margin: 0 0 8px 0; font-size: 0.9em; color: #e74c3c; font-weight: 800; border-bottom: 2px solid #e74c3c; padding-bottom: 2px; text-align: center;">FASE DIFENSIVA</h3>
                             <div class="tag-list" id="tagListDefensive">
                                 <!-- Tags difensive -->
                             </div>
@@ -63,6 +66,7 @@
 
                 <!-- Nuovo Sottopannello: Eventi Match -->
                 <div class="tag-panel" style="padding: 10px; border-top: 2px solid #ddd; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 1.1em; text-align: center; color: #34495e; text-transform: uppercase; letter-spacing: 1px;">Eventi Match</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 0.8em; color: #7f8c8d;">
                         <input type="text" id="teamNameA" value="SQUADRA A" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1.1em; width: 100%; outline: none; border-radius: 4px; padding: 2px;" onchange="updateTeamName('A', this.value)">
                         <input type="text" id="teamNameB" value="SQUADRA B" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1.1em; width: 100%; outline: none; border-radius: 4px; padding: 2px;" onchange="updateTeamName('B', this.value)">
@@ -164,10 +168,15 @@
             </div>
 
             <!-- Albero delle Azioni Taggate -->
-            <div class="tagged-actions-section">
+            <div class="tagged-actions-section" id="actionsSection">
+                <button class="collapse-section-btn" onclick="toggleActionsPanel()" title="Compatta/Espandi">»</button>
+                <div class="collapsed-label">AZIONI TAGGATE</div>
                 <div class="tagged-actions-header" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-                    <h2 style="margin: 0; min-width: fit-content;">Azioni Taggate</h2>
-                    <div class="row1" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; position: relative; width: 100%;">
+                        <h2 style="margin: 0; flex: 1; text-align: center;">Azioni Taggate</h2>
+                        <div style="width: 30px;"></div> <!-- Spacer per bilanciare il bottone a destra -->
+                    </div>
+                    <div class="row1" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-start;">
                         <button id="filterSelectedBtn" onclick="toggleSelectedFilter()" title="Mostra solo selezionate" style="padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer; background: #95a5a6; color: white;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                         </button>
@@ -184,8 +193,9 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         </button>
                         <div class="filter-tags-container" style="display: inline-block;">
-                            <button id="toggleFilterBtn" title="Filtra per Tag" style="padding: 6px 10px; display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; border-radius: 5px; background: white; cursor: pointer;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                            <button id="toggleFilterBtn" title="Filtra per Tag" style="padding: 6px 10px; display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; border-radius: 5px; background: #ecf0f1; color: #2c3e50; cursor: pointer;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+                                <span style="font-weight: bold; margin-left: 2px;">Tag</span>
                             </button>
                             <div id="filterTagsPanel" class="filter-tags-panel" style="display: none;">
                                 <!-- I checkbox per i tag appariranno qui -->

@@ -173,6 +173,97 @@ header h1 {
     padding: 15px;
     height: calc(100vh - 55px);
     align-items: stretch;
+    transition: grid-template-columns 0.3s ease;
+}
+
+.main-content.tags-collapsed {
+    grid-template-columns: 40px 1.6fr 0.8fr;
+}
+
+.main-content.actions-collapsed {
+    grid-template-columns: 0.6fr 1.6fr 40px;
+}
+
+.main-content.tags-collapsed.actions-collapsed {
+    grid-template-columns: 40px 1fr 40px;
+}
+
+.tags-section, .tagged-actions-section {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.tags-section.collapsed, .tagged-actions-section.collapsed {
+    padding: 10px 5px;
+    overflow: hidden;
+    background: #f1f1f1;
+}
+
+.tags-section.collapsed > *:not(.collapse-section-btn):not(.collapsed-label),
+.tagged-actions-section.collapsed > *:not(.collapse-section-btn):not(.collapsed-label) {
+    display: none !important;
+}
+
+.collapse-section-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 10;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.tagged-actions-section .collapse-section-btn {
+    right: 5px;
+    left: auto;
+}
+
+.collapse-section-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.collapsed-label {
+    display: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    color: #7f8c8d;
+    font-weight: 800;
+    font-size: 0.7em;
+    height: 100%;
+    text-align: center;
+    padding-top: 40px;
+    letter-spacing: 2px;
+}
+
+.collapsed .collapsed-label {
+    display: block;
+}
+
+/* Pannello Tags Headers */
+.tag-panel h2, .tagged-actions-section h2 {
+    text-align: center;
+    font-size: 1.3em !important;
+    margin: 0 0 15px 0 !important;
+    flex-grow: 1;
+}
+
+.tag-panel .header-wrapper, .tagged-actions-header .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
 }
 
 .tabs-navigation {

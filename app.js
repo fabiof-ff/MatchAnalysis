@@ -1108,8 +1108,8 @@ function toggleCollapseAll() {
         }
     });
     
-    // Aggiorna il testo del pulsante
-    collapseAllBtn.textContent = hasExpanded ? '📂 Espandi Tutti' : '📄 Compatta Tutti';
+    // Aggiorna solo il title del pulsante per non sovrascrivere l'SVG
+    collapseAllBtn.title = hasExpanded ? 'Espandi Tutti' : 'Compatta Tutti';
 }
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
@@ -2351,3 +2351,37 @@ function refreshPreviewSequence() {
         }
     }
 }
+
+// Layout Control
+function toggleTagsPanel() {
+    const mainContent = document.getElementById('mainContent');
+    const tagsSection = document.getElementById('tagsSection');
+    const btn = tagsSection.querySelector('.collapse-section-btn');
+    
+    tagsSection.classList.toggle('collapsed');
+    mainContent.classList.toggle('tags-collapsed');
+    
+    if (tagsSection.classList.contains('collapsed')) {
+        btn.textContent = '»';
+    } else {
+        btn.textContent = '«';
+    }
+}
+
+function toggleActionsPanel() {
+    const mainContent = document.getElementById('mainContent');
+    const actionsSection = document.getElementById('actionsSection');
+    const btn = actionsSection.querySelector('.collapse-section-btn');
+    
+    actionsSection.classList.toggle('collapsed');
+    mainContent.classList.toggle('actions-collapsed');
+    
+    if (actionsSection.classList.contains('collapsed')) {
+        btn.textContent = '«';
+    } else {
+        btn.textContent = '»';
+    }
+}
+
+window.toggleTagsPanel = toggleTagsPanel;
+window.toggleActionsPanel = toggleActionsPanel;
