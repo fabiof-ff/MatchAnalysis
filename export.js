@@ -588,17 +588,17 @@ echo.
             // 2. Sovrapponiamo poi il testo reale senza box.
             
             // BOX 1 (Status)
-            vf += `drawtext=text='${safeStatusText}gp':font='Arial':fontsize=32:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-70, `;
-            vf += `drawtext=text='${safeStatusText}':font='Arial':fontsize=32:fontcolor=${statusColor}:x=20:y=h-70, `;
+            vf += `drawtext=text='${safeStatusText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40, `;
+            vf += `drawtext=text='${safeStatusText}':font='Arial':fontsize=20:fontcolor=${statusColor}:x=20:y=h-40, `;
             
             // BOX 2 (Main Text)
-            // Posizionato a x=105 per lasciare spazio al primo box (~85px) + margine
-            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=32:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=10:x=105:y=h-70, `;
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=32:fontcolor=white:x=105:y=h-70`;
+            // Posizionato a x=75 per lasciare spazio al primo box (~55px) + margine
+            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=75:y=h-40, `;
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=75:y=h-40`;
         } else {
             // Se non c'è status, solo box principale con altezza standardizzata
-            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=32:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=10:x=20:y=h-70, `;
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=32:fontcolor=white:x=20:y=h-70`;
+            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40, `;
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=20:y=h-40`;
         }
         
         // AGGIUNTO: -r 30 per garantire coerenza tra tutti i segmenti (video e immagini)
