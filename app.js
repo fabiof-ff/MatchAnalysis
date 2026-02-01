@@ -1301,7 +1301,13 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                     `}
                 </div>
                 <div class="action-info">
-                    <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
+                    <select class="action-tag action-tag-select" 
+                            style="color: ${action.tag.color}; border: 1px solid transparent; background: transparent; font-weight: bold; cursor: pointer; padding: 2px; width: 100px; border-radius: 4px; font-size: 0.85em; text-overflow: ellipsis; white-space: nowrap;" 
+                            onchange="window.changeActionTag('${action.id}', this.value)"
+                            onmouseenter="this.style.border='1px solid #ccc'"
+                            onmouseleave="this.style.border='1px solid transparent'">
+                        ${state.tags.map(t => `<option value="${t.id}" ${t.id === action.tag.id ? 'selected' : ''} style="color: ${t.color}">${t.name}</option>`).join('')}
+                    </select>
                     <div class="action-time">
                         ${isImage ? `Durata: <input type="number" step="0.5" min="0.5" value="${action.duration}" style="width: 45px; background: rgba(255,255,255,0.1); border: 1px solid rgba(0,0,0,0.1); color: inherit; padding: 0 2px; border-radius: 3px;" onchange="event.stopPropagation(); window.updateImageDuration('${action.id}', this.value)"> s` 
                                   : `${formatTime(action.startTime)} - ${formatTime(action.endTime)}`}
@@ -1336,8 +1342,8 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
             
             // Click per attivare l'azione e controllare gli slider
             actionItem.addEventListener('click', (e) => {
-                // Ignora click su checkbox, input e button
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+                // Ignora click su checkbox, input, button e select
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') {
                     return;
                 }
                 setActiveAction(action);
@@ -1713,6 +1719,20 @@ function toggleActionSelection(actionId) {
     renderActions();
     saveStateToLocalStorage();
 }
+
+window.changeActionTag = function(actionId, newTagId) {
+    const action = state.actions.find(a => a.id === actionId);
+    if (!action) return;
+    
+    const newTag = state.tags.find(t => t.id === newTagId);
+    if (!newTag) return;
+    
+    action.tag = { ...newTag };
+    
+    renderActions();
+    saveStateToLocalStorage();
+    showNotification(`✅ Tag cambiato in "${newTag.name}"`, 'success');
+};
 
 function updateActionTime(actionId, type, value) {
     const action = state.actions.find(a => a.id === actionId);
