@@ -19,7 +19,7 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
                 types: [{
                     description: description,
                     accept: {
-                        'text/plain': ['.bat', '.ps1'],
+                        'text/plain': ['.bat', '.ps1', '.txt'],
                         'application/json': ['.json']
                     }
                 }]
@@ -29,7 +29,11 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
             if (videoDirectoryHandle) {
                 try {
                     // Verifica che abbiamo ancora i permessi
-                    const permission = await videoDirectoryHandle.queryPermission({ mode: 'readwrite' });
+                    let permission = await videoDirectoryHandle.queryPermission({ mode: 'readwrite' });
+                    if (permission === 'prompt') {
+                        permission = await videoDirectoryHandle.requestPermission({ mode: 'readwrite' });
+                    }
+                    
                     if (permission === 'granted') {
                         // Crea il file direttamente nella directory del video
                         const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
@@ -59,9 +63,8 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
                 // Salva il file nella directory selezionata
                 const fileHandle = await videoDirectoryHandle.getFileHandle(defaultFileName, { create: true });
                 const writable = await fileHandle.createWritable();
-                const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
-                    ? '\ufeff' + content 
-                    : content;
+                // Rimosso BOM per compatibilità Windows
+                const encodedContent = content;
                 await writable.write(encodedContent);
                 await writable.close();
                 showNotification(`✅ File salvato in: ${videoDirectoryHandle.name}\\${defaultFileName}`, 'success');
@@ -71,17 +74,15 @@ async function saveFileInVideoFolder(content, defaultFileName, description) {
             // Fallback: usa il dialogo normale
             const handle = await window.showSaveFilePicker(options);
             const writable = await handle.createWritable();
-            const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
-                ? '\ufeff' + content 
-                : content;
+            // Rimosso BOM per compatibilità Windows
+            const encodedContent = content;
             await writable.write(encodedContent);
             await writable.close();
             return true;
         } else {
             // Fallback: download normale
-            const encodedContent = (defaultFileName.endsWith('.bat') || defaultFileName.endsWith('.ps1')) 
-                ? '\ufeff' + content 
-                : content;
+            // Rimosso BOM per compatibilità Windows
+            const encodedContent = content;
             const blob = new Blob([encodedContent], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -317,6 +318,9 @@ goto end
 :end
 `;
     
+    // Converti tutti i \n in \r\n per compatibilità Windows Batch
+    ffmpegScript = ffmpegScript.replace(/\r?\n/g, '\r\n');
+    
     // Salva il file batch
     const batFileName = `compress_video_${Date.now()}.bat`;
     await saveFileInVideoFolder(ffmpegScript, batFileName, 'Script Compressione');
@@ -398,6 +402,9 @@ set "OUTPUT_VIDEO=%OUTPUT_VIDEO: =0%"
     // Error handling
     ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che:\necho - FFmpeg sia installato e nel PATH\necho - Tutti i video siano nella stessa cartella dello script\necho - I nomi dei file siano corretti\necho.\npause\ngoto end\n\n:end\n`;
     
+    // Converti tutti i \n in \r\n per compatibilità Windows Batch
+    ffmpegScript = ffmpegScript.replace(/\r?\n/g, '\r\n');
+
     // Salva il file batch
     const batFileName = `merge_videos_${Date.now()}.bat`;
     await saveFileInVideoFolder(ffmpegScript, batFileName, 'Script Merge');
@@ -425,10 +432,11 @@ Write-Host "Operazione completata!" -ForegroundColor Green
 }
 
 async function exportActionsToFFmpeg() {
-    if (state.selectedActions.size === 0) {
-        alert('Seleziona almeno un\'azione da esportare');
-        return;
-    }
+    try {
+        if (state.selectedActions.size === 0) {
+            alert('Seleziona almeno un\'azione da esportare');
+            return;
+        }
     
     // Usa sempre customOrder se disponibile, altrimenti ordina per tag/tempo
     let selectedActionsList;
@@ -481,6 +489,30 @@ async function exportActionsToFFmpeg() {
     // Calcola durata totale per stima
     const totalDuration = selectedActionsList.reduce((acc, a) => acc + a.duration, 0);
     const durationStr = formatTime(totalDuration);
+
+    // Funzione di utility per fare l'escape dei caratteri speciali per FFmpeg drawtext
+    const escapeFFmpegText = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/\\/g, '\\\\')
+            .replace(/:/g, '\\:')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '') // Rimuove virgolette doppie per evitare conflitti con la shell
+            .replace(/%/g, '%%');
+    };
+
+    // Utility per escape caratteri speciali Windows Batch
+    const escapeBatch = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/%/g, '%%')
+            .replace(/&/g, '^&')
+            .replace(/</g, '^<')
+            .replace(/>/g, '^>')
+            .replace(/\|/g, '^|')
+            .replace(/\(/g, '^(')
+            .replace(/\)/g, '^)');
+    };
 
     let ffmpegScript = `@echo off
 chcp 65001 > nul
@@ -550,16 +582,6 @@ echo.
             return;
         }
 
-        // Funzione di utility per fare l'escape dei caratteri speciali per FFmpeg drawtext
-        const escapeFFmpegText = (text) => {
-            if (!text) return '';
-            return text
-                .replace(/\\/g, '\\\\')
-                .replace(/:/g, '\\:')
-                .replace(/'/g, "\\'")
-                .replace(/%/g, '%%');
-        };
-
         // Prepara il testo da sovrapporre (Tag + Flag + Commento)
         // Requisiti: v -> OK (lime), x -> KO (red). Arial, Bottom-Left.
         let statusText = '';
@@ -589,8 +611,7 @@ echo.
         const safeMainText = escapeFFmpegText(tagName + commentText);
         const fullTextForBox = escapeFFmpegText(statusText + tagName + commentText);
 
-        // Sanificazione per il comando ECHO di Windows (escape del carattere | che causerebbe un pipe)
-        const batchSafeTagName = tagName.replace(/\|/g, '^|');
+        const batchSafeTagName = escapeBatch(tagName);
 
         ffmpegScript += `echo ${barStr} ${progress}%% - [${i+1}/${selectedActionsList.length}] Estrazione: ${batchSafeTagName} (%TIME%)\n`;
         
@@ -630,10 +651,11 @@ echo.
     
     if (useXfade) {
         // Logica complessa xfade via filter_complex
+        // Usiamo un file di script per il filtro per evitare il limite di caratteri della riga di comando Windows
         ffmpegScript += `echo.\necho Applicazione sfumature (Dip to Black) tra le clip...\n`;
         
         let inputs = "";
-        let filter = "";
+        let filterParts = [];
         let currentOut = "v0";
         let currentAudioOut = "a0";
         
@@ -649,7 +671,8 @@ echo.
         if (effectiveXfades.length > 0) {
             v0Filt += `,fade=out:st=${(selectedActionsList[0].duration - effectiveXfades[0]).toFixed(3)}:d=${effectiveXfades[0].toFixed(3)}`;
         }
-        filter += `[0:v]${v0Filt}[v0]; [0:a]atrim=0,asetpts=PTS-STARTPTS[a0]; `;
+        filterParts.push(`[0:v]${v0Filt}[v0]`);
+        filterParts.push(`[0:a]atrim=0,asetpts=PTS-STARTPTS[a0]`);
         
         let offset = selectedActionsList[0].duration;
         
@@ -670,23 +693,31 @@ echo.
             }
             
             // Porta i timestamp a zero per ogni input clip e applica i fade
-            filter += `[${i}:v]${viFilt}[${vIn}]; [${i}:a]atrim=0,asetpts=PTS-STARTPTS[${aIn}]; `;
+            filterParts.push(`[${i}:v]${viFilt}[${vIn}]`);
+            filterParts.push(`[${i}:a]atrim=0,asetpts=PTS-STARTPTS[${aIn}]`);
             
             // Calcola l'offset: dove INIZIA la sfumatura sulla clip corrente accumulata
             offset -= transDur;
             
             // Applica xfade video e acrossfade audio
-            filter += `[${currentOut}][${vIn}]xfade=transition=fade:duration=${transDur.toFixed(3)}:offset=${offset.toFixed(3)}[${vOut}]; `;
-            filter += `[${currentAudioOut}][${aIn}]acrossfade=d=${transDur.toFixed(3)}[${aOut}]; `;
+            filterParts.push(`[${currentOut}][${vIn}]xfade=transition=fade:duration=${transDur.toFixed(3)}:offset=${offset.toFixed(3)}[${vOut}]`);
+            filterParts.push(`[${currentAudioOut}][${aIn}]acrossfade=d=${transDur.toFixed(3)}[${aOut}]`);
             
             currentOut = vOut;
             currentAudioOut = aOut;
             // Aggiorna l'offset per la prossima clip (aggiungi la durata della clip i intera)
             offset += selectedActionsList[i].duration;
         }
+
+        const filterFileName = `xfade_filter_${Date.now()}.txt`;
+        const filterStr = filterParts.join('; ');
+        await saveFileInVideoFolder(filterStr, filterFileName, 'FFmpeg Filter Script');
         
-        ffmpegScript += `ffmpeg ${inputs} -filter_complex "${filter.slice(0, -2)}" -map "[${currentOut}]" -map "[${currentAudioOut}]" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "%OUTPUT_VIDEO%"\n`;
+        ffmpegScript += `ffmpeg ${inputs} -filter_complex_script "${filterFileName}" -map "[${currentOut}]" -map "[${currentAudioOut}]" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "%OUTPUT_VIDEO%"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
+        
+        // Aggiungi il file filter ai file da pulire
+        ffmpegScript += `del "${filterFileName}"\n`;
     } else {
         // Metodo classico concat (senza sfumature)
         ffmpegScript += `echo.\necho Creazione lista concatenazione...\n`;
@@ -722,11 +753,11 @@ echo.
                 const tName = state.teamNames[action.tag.team];
                 if (tName) teamSuffix = ` | ${tName.toUpperCase()}`;
             }
-            const displayTagName = ((action.tag ? action.tag.name.toUpperCase() : "TAG") + teamSuffix).replace(/\|/g, '^|');
+            const displayTagName = escapeBatch((action.tag ? action.tag.name.toUpperCase() : "TAG") + teamSuffix);
             
             ffmpegScript += `echo   ${i+1}. ${displayTagName} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
             if (action.comment && action.comment.trim()) {
-                const safeComment = action.comment.replace(/["|']/g, '').replace(/\|/g, '^|');
+                const safeComment = escapeBatch(action.comment.replace(/["|']/g, ''));
                 ffmpegScript += ` | ${safeComment}`;
             }
             ffmpegScript += `\n`;
@@ -736,8 +767,11 @@ echo.
     ffmpegScript += `explorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
     
     // Error handling
-    ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che FFmpeg sia installato e nel PATH.\necho.\npause\ngoto end\n\n:end\n`;
+    ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che:\necho - FFmpeg sia installato e nel PATH\necho - Il file video sia nella stessa cartella dello script\necho - Non ci siano caratteri speciali proibiti nel commento\necho.\necho Se vedi errori "Fontconfig", prova a installare una versione completa di FFmpeg\necho o a disabilitare temporaneamente i testi sovrapposti.\necho.\npause\ngoto end\n\n:end\n`;
     
+    // Converti tutti i \n in \r\n per compatibilità Windows Batch
+    ffmpegScript = ffmpegScript.replace(/\r?\n/g, '\r\n');
+
     // Salva il file batch
     const fileName = `create_highlight_${Date.now()}.bat`;
     await saveFileInVideoFolder(ffmpegScript, fileName, 'Script FFmpeg');
@@ -774,18 +808,10 @@ Write-Host "Operazione completata!" -ForegroundColor Green
         'success',
         10000  // Mostra per 10 secondi
     );
-}
-
-async function exportActionsToJSON() {
-    const data = {
-        exportDate: new Date().toISOString(),
-        videoName: state.currentVideo ? state.currentVideo.name : null,
-        teamNames: state.teamNames,
-        actions: state.actions.map(action => ({
-            ...action,
-            selected: state.selectedActions.has(action.id)
-        }))
-    };
+    } catch (error) {
+        console.error('Errore durante l\'esportazione FFmpeg:', error);
+        alert('Si è verificato un errore durante la creazione dello script: ' + error.message);
+    }
     
     // Esporta JSON
     const json = JSON.stringify(data, null, 2);
