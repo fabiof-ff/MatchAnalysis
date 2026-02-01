@@ -464,10 +464,11 @@ video {
 }
 
 .tag-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
     flex-shrink: 0;
+    min-height: 50px; /* Assicura che ci sia spazio per il drop anche se vuoto */
 }
 
 .tag-item {

@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderActions();
     updateFlagFilterBtn();
     updateSelectedFilterBtn();
+    setupDraggableContainers();
     // IMPORTANTE: setupActionsListeners DOPO il rendering
     setupActionsListeners();
     console.log('App inizializzata - Tags:', state.tags.length);
@@ -45,16 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Default Tags
 function initializeDefaultTags() {
     const baseTags = [
-        { id: 'costr_fondo', name: 'Costr. fondo', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 0 },
-        { id: 'costr_din_basso', name: 'Costr.din.basso', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 1 },
-        { id: 'costr_centr', name: 'Costr.Centr.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2 },
-        { id: 'costr_din_att', name: 'Costr.din.att.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 3 },
-        { id: 'tran_offen', name: 'Tran.Offen.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 4 },
-        { id: 'press_rimessa', name: 'Press. Rimessa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5 },
-        { id: 'prima_press_alta', name: 'Prima press.alta', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6 },
-        { id: 'press_din_centr', name: 'Press.din.centr.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 7 },
-        { id: 'dif_bassa', name: 'Dif.bassa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 8 },
-        { id: 'tran_dif', name: 'Tran.Dif.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 9 }
+        { id: 'costr_fondo', name: 'Costr. fondo', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 0, phase: 'offensiva' },
+        { id: 'costr_din_basso', name: 'Costr.din.basso', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 1, phase: 'offensiva' },
+        { id: 'costr_centr', name: 'Costr.Centr.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2, phase: 'offensiva' },
+        { id: 'costr_din_att', name: 'Costr.din.att.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 3, phase: 'offensiva' },
+        { id: 'tran_offen', name: 'Tran.Offen.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 4, phase: 'offensiva' },
+        { id: 'press_rimessa', name: 'Press. Rimessa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5, phase: 'difensiva' },
+        { id: 'prima_press_alta', name: 'Prima press.alta', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6, phase: 'difensiva' },
+        { id: 'press_din_centr', name: 'Press.din.centr.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 7, phase: 'difensiva' },
+        { id: 'dif_bassa', name: 'Dif.bassa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 8, phase: 'difensiva' },
+        { id: 'tran_dif', name: 'Tran.Dif.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 9, phase: 'difensiva' }
     ];
 
     const matchEvents = [
@@ -514,6 +515,7 @@ function updateDuration() {
 function addNewTag() {
     const nameInput = document.getElementById('newTagName');
     const colorInput = document.getElementById('tagColor');
+    const phaseInput = document.getElementById('tagPhaseInput');
     
     const name = nameInput.value.trim();
     if (!name) {
@@ -525,6 +527,7 @@ function addNewTag() {
         id: 'tag_' + Date.now(),
         name: name,
         color: colorInput.value,
+        phase: phaseInput.value,
         offsetBefore: 5,
         offsetAfter: 5,
         isDefault: false,
@@ -540,7 +543,8 @@ function addNewTag() {
 }
 
 function renderTags() {
-    const tagList = document.getElementById('tagList');
+    const tagListOffensive = document.getElementById('tagListOffensive');
+    const tagListDefensive = document.getElementById('tagListDefensive');
     const tagListA = document.getElementById('tagListA');
     const tagListB = document.getElementById('tagListB');
     const teamNameAInput = document.getElementById('teamNameA');
@@ -552,13 +556,14 @@ function renderTags() {
     
     console.log('===== renderTags CHIAMATA =====');
     
-    if (!tagList) {
-        console.error('ERRORE: Elemento tagList non trovato nel DOM!');
+    if (!tagListOffensive || !tagListDefensive) {
+        console.error('ERRORE: Elementi tagList non trovati nel DOM!');
         return;
     }
     
     // Pulisci tutti i contenitori
-    tagList.innerHTML = '';
+    tagListOffensive.innerHTML = '';
+    tagListDefensive.innerHTML = '';
     if (tagListA) tagListA.innerHTML = '';
     if (tagListB) tagListB.innerHTML = '';
     
@@ -600,13 +605,13 @@ function renderTags() {
             }
         });
         
-        // Drag and drop (solo per tagList principale)
+        // Drag and drop (solo per tag principali)
         if (!tag.category || tag.category !== 'match_events') {
             tagItem.addEventListener('dragstart', (e) => {
                 e.stopPropagation();
                 tagItem.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', tag.id);
+                e.dataTransfer.setData('text/plain', tag.id);
             });
             
             tagItem.addEventListener('dragend', (e) => {
@@ -619,11 +624,12 @@ function renderTags() {
                 const draggingItem = document.querySelector('.dragging');
                 if (draggingItem && draggingItem !== tagItem) {
                     const rect = tagItem.getBoundingClientRect();
-                    const midpoint = rect.left + rect.width / 2;
-                    if (e.clientX < midpoint) {
-                        tagList.insertBefore(draggingItem, tagItem);
+                    const midpoint = rect.top + rect.height / 2;
+                    const parent = tagItem.parentNode;
+                    if (e.clientY < midpoint) {
+                        parent.insertBefore(draggingItem, tagItem);
                     } else {
-                        tagList.insertBefore(draggingItem, tagItem.nextSibling);
+                        parent.insertBefore(draggingItem, tagItem.nextSibling);
                     }
                 }
             });
@@ -651,24 +657,79 @@ function renderTags() {
                 tagListB.appendChild(tagItem);
             }
         } else {
-            tagList.appendChild(tagItem);
+            if (tag.phase === 'difensiva') {
+                tagListDefensive.appendChild(tagItem);
+            } else {
+                tagListOffensive.appendChild(tagItem);
+            }
         }
     });
+
+    // Supporto per il drop in liste vuote e cambio fase
+    // Nota: I listener vengono ora aggiunti qui, ma sarebbe meglio in setupEventListeners
+    // per non duplicarli. Tuttavia, dato che ricreiamo il contenuto, li teniamo qui per ora
+    // assicurandoci di non avere memory leaks gravi se non chiamiamo renderTags migliaia di volte.
+    // AGGIORNAMENTO: Evitiamo duplicati rimuovendo i vecchi se necessario o usando delegazione.
+}
+
+function setupDraggableContainers() {
+    const listOff = document.getElementById('tagListOffensive');
+    const listDef = document.getElementById('tagListDefensive');
+    
+    if (listOff && listDef) {
+        [listOff, listDef].forEach(list => {
+            list.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const draggingItem = document.querySelector('.tag-item.dragging');
+                if (draggingItem && !list.contains(draggingItem)) {
+                    list.appendChild(draggingItem);
+                }
+            });
+            list.addEventListener('drop', (e) => {
+                e.preventDefault();
+                reorderTags();
+            });
+        });
+    }
 }
 
 function reorderTags() {
-    const tagList = document.getElementById('tagList');
-    const tagItems = Array.from(tagList.querySelectorAll('.tag-item'));
-    const newOrder = tagItems.map(item => item.dataset.tagId);
+    const tagListOffensive = document.getElementById('tagListOffensive');
+    const tagListDefensive = document.getElementById('tagListDefensive');
     
-    state.tags.sort((a, b) => {
-        return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
+    const offItems = Array.from(tagListOffensive.querySelectorAll('.tag-item'));
+    const defItems = Array.from(tagListDefensive.querySelectorAll('.tag-item'));
+    
+    const newTags = [];
+    
+    // Process Offensiva
+    offItems.forEach((item, index) => {
+        const tag = state.tags.find(t => t.id === item.dataset.tagId);
+        if (tag) {
+            tag.order = index;
+            tag.phase = 'offensiva';
+            newTags.push(tag);
+        }
     });
     
-    // Aggiorna order
-    state.tags.forEach((tag, index) => {
-        tag.order = index;
+    // Process Difensiva
+    defItems.forEach((item, index) => {
+        const tag = state.tags.find(t => t.id === item.dataset.tagId);
+        if (tag) {
+            tag.order = offItems.length + index;
+            tag.phase = 'difensiva';
+            newTags.push(tag);
+        }
     });
+    
+    // Aggiungi quelli che non sono tag principali (match_events) mantenendo il loro ordine relativo
+    state.tags.forEach(tag => {
+        if (tag.category === 'match_events') {
+            newTags.push(tag);
+        }
+    });
+    
+    state.tags = newTags;
     
     // Reset customOrder quando cambia l'ordine dei tag
     state.customOrder = [];
@@ -679,8 +740,8 @@ function reorderTags() {
     // Ricarica le azioni per applicare il nuovo ordine
     renderActions();
     
-    console.log('Tag riordinati:', state.tags.map(t => t.name));
-    showNotification('✅ Ordine tag aggiornato! Gruppi azioni resettati.', 'success', 2000);
+    console.log('Tag riordinati:', state.tags.filter(t => !t.category).map(t => `${t.name} (${t.phase})`));
+    showNotification('✅ Ordine e fasi tag aggiornati!', 'success', 2000);
 }
 
 function toggleTagSettings(tagId, event) {

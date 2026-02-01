@@ -36,13 +36,28 @@
                         </div>
                     </div>
                     <div class="tag-creation">
-                        <input type="text" id="newTagName" placeholder="Nome tag...">
+                        <input type="text" id="newTagName" placeholder="Nome tag..." style="flex: 1;">
                         <input type="color" id="tagColor" value="#3498db">
+                        <select id="tagPhaseInput" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.8em;">
+                            <option value="offensiva">🔥 OFF</option>
+                            <option value="difensiva">🛡️ DIF</option>
+                        </select>
                         <button id="addTagBtn">+</button>
                     </div>
                     
-                    <div class="tag-list" id="tagList">
-                        <!-- Tags precaricati -->
+                    <div class="tags-container-split" style="display: flex; gap: 10px;">
+                        <div class="phase-group" style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 0.75em; color: #27ae60; font-weight: 800; border-bottom: 2px solid #27ae60; padding-bottom: 2px;">FASE OFFENSIVA</h3>
+                            <div class="tag-list" id="tagListOffensive">
+                                <!-- Tags offensive -->
+                            </div>
+                        </div>
+                        <div class="phase-group" style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 0.75em; color: #e74c3c; font-weight: 800; border-bottom: 2px solid #e74c3c; padding-bottom: 2px;">FASE DIFENSIVA</h3>
+                            <div class="tag-list" id="tagListDefensive">
+                                <!-- Tags difensive -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
