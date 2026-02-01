@@ -110,8 +110,9 @@ function initializeDefaultTags() {
                     if (!existing) {
                         state.tags.push(dt);
                     } else if (dt.isDefault) {
-                        // Aggiorna l'ordine per riflettere le modifiche nel codice (es. Gol primo)
+                        // Aggiorna l'ordine e la fase per riflettere le modifiche nel codice
                         existing.order = dt.order;
+                        if (dt.phase) existing.phase = dt.phase;
                     }
                 });
             } else {
@@ -936,6 +937,54 @@ function renderActions() {
     const actionsList = document.getElementById('actionsList');
     if (!actionsList) return;
     actionsList.innerHTML = '';
+    
+    // Calcola il totale tempo delle azioni selezionate
+    const selectedActionsData = state.actions.filter(a => state.selectedActions.has(a.id));
+    
+    // Calcolo totali per fase
+    let offSec = 0;
+    let defSec = 0;
+    let totalSec = 0;
+    
+    selectedActionsData.forEach(a => {
+        const duration = parseFloat(a.endTime) - parseFloat(a.startTime);
+        if (isNaN(duration)) return;
+        
+        totalSec += duration;
+        
+        // Determina la fase dal tag corrente nello stato globale (per riflettere la posizione nel pannello)
+        let phase = null;
+        if (a.tag && a.tag.id) {
+            const currentTag = state.tags.find(t => t.id === a.tag.id);
+            if (currentTag) {
+                phase = currentTag.phase;
+            } else {
+                // Fallback se il tag non è trovato nello stato (es. rimosso)
+                phase = a.tag.phase;
+            }
+        }
+        
+        if (phase === 'offensiva') {
+            offSec += duration;
+        } else if (phase === 'difensiva') {
+            defSec += duration;
+        }
+    });
+
+    const totalTimeElement = document.getElementById('totalSelectedTime');
+    const totalOverallDisplay = document.getElementById('totalOverall');
+    const totalOffensiveDisplay = document.getElementById('totalOffensive');
+    const totalDefensiveDisplay = document.getElementById('totalDefensive');
+
+    if (totalOverallDisplay) totalOverallDisplay.textContent = `TOT: ${formatTime(totalSec)}`;
+    if (totalOffensiveDisplay) totalOffensiveDisplay.textContent = `OFF: ${formatTime(offSec)}`;
+    if (totalDefensiveDisplay) totalDefensiveDisplay.textContent = `DIF: ${formatTime(defSec)}`;
+
+    if (totalTimeElement) {
+        // Evidenzia se ci sono azioni selezionate
+        totalTimeElement.style.backgroundColor = state.selectedActions.size > 0 ? '#d4edda' : '#e8f4f8';
+        totalTimeElement.style.borderColor = state.selectedActions.size > 0 ? '#c3e6cb' : '#bde0eb';
+    }
     
     // Filtra le azioni se ci sono filtri attivi
     let filteredActions = state.actions;

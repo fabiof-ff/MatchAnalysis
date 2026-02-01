@@ -177,6 +177,12 @@
                         <h2 style="margin: 0; flex: 1; text-align: center;">Azioni Taggate</h2>
                         <div style="width: 30px;"></div> <!-- Spacer per bilanciare il bottone a destra -->
                     </div>
+                    <!-- Totale tempo azioni selezionate -->
+                    <div id="totalSelectedTime" style="text-align: center; font-size: 0.8em; color: #2c3e50; font-weight: bold; background: #e8f4f8; padding: 4px 8px; border-radius: 4px; margin-bottom: 5px; border: 1px solid #bde0eb; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
+                        <span id="totalOverall" title="Totale complessivo selezionato">TOT: 00:00:00</span>
+                        <span id="totalOffensive" style="color: #27ae60;" title="Totale fase offensiva">OFF: 00:00:00</span>
+                        <span id="totalDefensive" style="color: #e74c3c;" title="Totale fase difensiva">DIF: 00:00:00</span>
+                    </div>
                     <div class="row1" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-start;">
                         <button id="filterSelectedBtn" onclick="toggleSelectedFilter()" title="Mostra solo selezionate" style="padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer; background: #95a5a6; color: white;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
