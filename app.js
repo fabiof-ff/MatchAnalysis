@@ -1205,10 +1205,12 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
         groupHeader.style.borderLeft = `4px solid ${group.tag.color}`;
 
         const isCollapsed = state.collapsedGroups.has(tagId);
+        const selectedInGroup = group.actions.filter(a => state.selectedActions.has(a.id)).length;
+
         groupHeader.innerHTML = `
             <span class="drag-handle">⋮⋮</span>
             <span class="group-tag-name" style="color: ${group.tag.color}; font-weight: 600;">${group.tag.name}</span>
-            <span class="group-count">(${group.actions.length} azioni)</span>
+            <span class="group-count">(${selectedInGroup}/${group.actions.length} selezionate)</span>
             <span class="collapse-toggle">${isCollapsed ? '▶' : '▼'}</span>
         `;
         
