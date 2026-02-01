@@ -389,7 +389,7 @@ set "OUTPUT_VIDEO=%OUTPUT_VIDEO: =0%"
     ffmpegScript += `del merge_list.txt\n\n`;
     
     // Success
-    ffmpegScript += `echo.\necho ========================================\necho   Video unito con successo!\necho ========================================\necho.\necho File: %OUTPUT_VIDEO%\necho.\necho Video uniti:\n`;
+    ffmpegScript += `echo.\necho ===================================================\necho   Video creato con successo!\necho ===================================================\necho.\necho File: %OUTPUT_VIDEO%\necho Inizio: %START_TIME%  Fine: %TIME%\necho.\necho Clip incluse:\n`;
     videoNames.forEach((name, i) => {
         ffmpegScript += `echo   ${i + 1}. ${name}\n`;
     });
@@ -478,18 +478,31 @@ async function exportActionsToFFmpeg() {
     const xfadeDuration = parseFloat(document.getElementById('xfadeDuration')?.value || "0");
     const useXfade = xfadeDuration > 0 && selectedActionsList.length > 1;
 
+    // Calcola durata totale per stima
+    const totalDuration = selectedActionsList.reduce((acc, a) => acc + a.duration, 0);
+    const durationStr = formatTime(totalDuration);
+
     let ffmpegScript = `@echo off
 chcp 65001 > nul
 REM Script generato da Match Analysis
 REM Video di sintesi con ${selectedActionsList.length} clip
+REM Durata totale stimata del video finale: ${durationStr}
 ${useXfade ? `REM Transizione xfade tra le clip: ${xfadeDuration}s` : ''}
 
-echo ========================================
+echo ===================================================
 echo   Match Analysis - Creazione Highlight
-echo ========================================
+echo ===================================================
 echo.
-echo Questo script richiede FFmpeg installato sul PC
-echo Download: https://ffmpeg.org/download.html
+echo Statistiche di esportazione:
+echo - Numero di clip: ${selectedActionsList.length}
+echo - Durata video finale: ${durationStr}
+echo - Data/Ora inizio: %TIME%
+echo.
+echo NOTA: Il tempo di elaborazione dipende dalla potenza del tuo PC. 
+echo Di solito richiede circa il 30-50%% della durata totale del video finalizzato.
+echo.
+set "START_TIME=%TIME%"
+echo Questo script richiede FFmpeg installato sul PC.
 echo.
 
 set "INPUT_VIDEO=${videoFileName}"
@@ -518,15 +531,22 @@ echo.
 
     // Extract each segment
     selectedActionsList.forEach((action, i) => {
+        const progress = Math.round(((i + 1) / selectedActionsList.length) * 100);
+        const barSize = 20;
+        const filled = Math.round((progress / 100) * barSize);
+        const empty = barSize - filled;
+        const barStr = "[" + "#".repeat(filled) + ".".repeat(empty) + "]";
+
         if (action.type === 'image') {
-            ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Elaborazione Immagine: ${action.fileName} (${action.duration.toFixed(1)}s)\n`;
+            const fileNameSafe = action.fileName.replace(/\|/g, '^|');
+            ffmpegScript += `echo ${barStr} ${progress}%% - [${i+1}/${selectedActionsList.length}] Elaborazione Immagine: ${fileNameSafe} (%TIME%)\n`;
             // Verifica se il file esiste (echo di avviso nello script)
-            ffmpegScript += `if not exist "${action.fileName}" echo ATTENZIONE: Immagine "${action.fileName}" non trovata!\n`;
+            ffmpegScript += `if not exist "${action.fileName}" echo ATTENZIONE: Immagine "${fileNameSafe}" non trovata!\n`;
             
             // Crea un segmento video dall'immagine
             // Usiamo scale e pad per assicurarci che l'immagine entri nel formato del video senza distorsioni
             // AGGIUNTO: -r 30 per pareggiare il framerate del video originale ed evitare errori xfade
-            ffmpegScript += `ffmpeg -loop 1 -r 30 -i "${action.fileName}" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${vWidth}:${vHeight}:force_original_aspect_ratio=decrease,pad=${vWidth}:${vHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p" -c:a aac -b:a 128k -shortest "segment_${i}.mp4"\n`;
+            ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${action.fileName}" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${vWidth}:${vHeight}:force_original_aspect_ratio=decrease,pad=${vWidth}:${vHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p" -c:a aac -b:a 128k -shortest "segment_${i}.mp4"\n`;
             ffmpegScript += `if errorlevel 1 goto error\n\n`;
             return;
         }
@@ -551,18 +571,18 @@ echo.
         if (action.tag.team && state.teamNames) {
             const teamName = state.teamNames[action.tag.team];
             if (teamName) {
-                teamSuffix = ` - ${teamName.toUpperCase()}`;
+                teamSuffix = ` | ${teamName.toUpperCase()}`;
             }
         }
         
         let tagName = action.tag.name.toUpperCase() + teamSuffix;
-        let commentText = (action.comment && action.comment.trim() && action.type !== 'image') ? ` - ${action.comment}` : '';
+        let commentText = (action.comment && action.comment.trim() && action.type !== 'image') ? ` | ${action.comment}` : '';
         
         if (action.positive) {
-            statusText = 'OK ';
+            statusText = 'OK | ';
             statusColor = 'lime';
         } else if (action.negative) {
-            statusText = 'KO ';
+            statusText = 'KO | ';
             statusColor = 'red';
         }
 
@@ -570,7 +590,10 @@ echo.
         const safeMainText = escapeFFmpegText(tagName + commentText);
         const fullTextForBox = escapeFFmpegText(statusText + tagName + commentText);
 
-        ffmpegScript += `echo [${i+1}/${selectedActionsList.length}] Estrazione: ${tagName} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})\n`;
+        // Sanificazione per il comando ECHO di Windows (escape del carattere | che causerebbe un pipe)
+        const batchSafeTagName = tagName.replace(/\|/g, '^|');
+
+        ffmpegScript += `echo ${barStr} ${progress}%% - [${i+1}/${selectedActionsList.length}] Estrazione: ${batchSafeTagName} (%TIME%)\n`;
         
         // Filtro VF con allineamento in basso a sinistra e carattere Arial
         // - Per avere un box UNICO, disegniamo prima un box vuoto basato sul testo totale,
@@ -592,9 +615,9 @@ echo.
             vf += `drawtext=text='${safeStatusText}':font='Arial':fontsize=20:fontcolor=${statusColor}:x=20:y=h-40, `;
             
             // BOX 2 (Main Text)
-            // Posizionato a x=75 per lasciare spazio al primo box (~55px) + margine
-            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=75:y=h-40, `;
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=75:y=h-40`;
+            // Posizionato a x=85 per lasciare spazio al primo box (~65px) + margine
+            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=85:y=h-40, `;
+            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=85:y=h-40`;
         } else {
             // Se non c'è status, solo box principale con altezza standardizzata
             vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40, `;
@@ -602,7 +625,7 @@ echo.
         }
         
         // AGGIUNTO: -r 30 per garantire coerenza tra tutti i segmenti (video e immagini)
-        ffmpegScript += `ffmpeg -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${vf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+        ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${vf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
@@ -689,21 +712,23 @@ echo.
     ffmpegScript += `\n`;
     
     // Success
-    ffmpegScript += `echo.\necho ========================================\necho   Video creato con successo!\necho ========================================\necho.\necho File: %OUTPUT_VIDEO%\necho.\n`;
-    ffmpegScript += `echo Clip incluse:\n`;
+    ffmpegScript += `echo.\necho ========================================\necho   Video creato con successo!\necho ========================================\necho.\necho File: %OUTPUT_VIDEO%\necho Inizio: %START_TIME%  Fine: %TIME%\necho.\necho Clip incluse:\n`;
     selectedActionsList.forEach((action, i) => {
         if (action.type === 'image') {
-            ffmpegScript += `echo   ${i+1}. [IMMAGINE] ${action.fileName} (${action.duration}s)\n`;
+            const fileNameSafe = action.fileName.replace(/\|/g, '^|');
+            ffmpegScript += `echo   ${i+1}. [IMMAGINE] ${fileNameSafe} (${action.duration}s)\n`;
         } else {
             let teamSuffix = "";
             if (action.tag && action.tag.team && state.teamNames) {
                 const tName = state.teamNames[action.tag.team];
-                if (tName) teamSuffix = ` - ${tName.toUpperCase()}`;
+                if (tName) teamSuffix = ` | ${tName.toUpperCase()}`;
             }
-            const displayTagName = (action.tag ? action.tag.name.toUpperCase() : "TAG") + teamSuffix;
+            const displayTagName = ((action.tag ? action.tag.name.toUpperCase() : "TAG") + teamSuffix).replace(/\|/g, '^|');
+            
             ffmpegScript += `echo   ${i+1}. ${displayTagName} (${formatTime(action.startTime)} - ${formatTime(action.endTime)})`;
             if (action.comment && action.comment.trim()) {
-                ffmpegScript += ` - ${action.comment.replace(/["|']/g, '')}`;
+                const safeComment = action.comment.replace(/["|']/g, '').replace(/\|/g, '^|');
+                ffmpegScript += ` | ${safeComment}`;
             }
             ffmpegScript += `\n`;
         }
