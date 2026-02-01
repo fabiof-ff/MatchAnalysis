@@ -80,18 +80,19 @@
 
             <!-- Sezione Video Player -->
             <div class="video-section">
-                <div class="video-controls-top" style="display: flex; gap: 8px; align-items: center;">
-                    <button id="loadVideoBtn" title="Carica Video" style="display: flex; align-items: center; gap: 5px; padding: 8px 15px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Carica Video
+                <div class="video-controls-top" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #f8f9fa; padding: 5px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #dee2e6;">
+                    <button id="loadVideoBtn" title="Carica Video" style="background: linear-gradient(135deg, #3498db, #2980b9); display: flex; align-items: center; padding: 6px 10px; border: none; border-radius: 5px; color: white; cursor: pointer;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     </button>
-                    <button id="exportFFmpegBtn" title="Esporta Script FFmpeg" style="background: linear-gradient(135deg, #e67e22, #d35400); display: flex; align-items: center; gap: 5px; padding: 8px 15px;">
+                    <button id="exportFFmpegBtn" title="Esporta Script FFmpeg" style="background: linear-gradient(135deg, #e67e22, #d35400); display: flex; align-items: center; padding: 6px 10px; border: none; border-radius: 5px; color: white; cursor: pointer;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
-                        Script FFmpeg
                     </button>
-                    <div class="xfade-control" style="display: flex; align-items: center; gap: 5px; background: #34495e; padding: 4px 10px; border-radius: 5px; color: white;">
-                        <label for="xfadeDuration" style="font-size: 0.8em; font-weight: 600;">Sfumatura (s):</label>
-                        <select id="xfadeDuration" style="background: white; color: #333; border: none; border-radius: 3px; padding: 2px 4px; font-size: 0.8em; cursor: pointer;">
+                    
+                    <div style="height: 24px; width: 1px; background: #ccc; margin: 0 4px;"></div>
+
+                    <div class="xfade-control" style="display: flex; align-items: center; gap: 5px; background: #34495e; padding: 4px 8px; border-radius: 5px; color: white;">
+                        <span title="Durata Sfumatura" style="font-size: 0.75em; font-weight: 600;">☁️</span>
+                        <select id="xfadeDuration" style="background: white; color: #333; border: none; border-radius: 3px; padding: 2px; font-size: 0.75em; cursor: pointer;">
                             <option value="0">Off</option>
                             <option value="0.3">0.3s</option>
                             <option value="0.5" selected>0.5s</option>
@@ -100,29 +101,29 @@
                             <option value="1.5">1.5s</option>
                         </select>
                     </div>
-                    <button id="startPreviewFromMainBtn" title="Avvia Sequenza Anteprima" style="background: linear-gradient(135deg, #27ae60, #2ecc71); display: flex; align-items: center; gap: 5px; padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: 600;">
+
+                    <button id="startPreviewFromMainBtn" title="Avvia Sequenza Anteprima" style="background: linear-gradient(135deg, #27ae60, #2ecc71); display: flex; align-items: center; padding: 6px 10px; border: none; border-radius: 5px; color: white; cursor: pointer;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                        Avvia Sequenza
                     </button>
-                    <button id="stopPreviewMainBtn" title="Ferma Sequenza" style="background: linear-gradient(135deg, #e74c3c, #c0392b); display: none; align-items: center; gap: 5px; padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: 600;">
+                    <button id="stopPreviewMainBtn" title="Ferma Sequenza" style="background: linear-gradient(135deg, #e74c3c, #c0392b); display: none; align-items: center; padding: 6px 10px; border: none; border-radius: 5px; color: white; cursor: pointer;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
-                        Stop
                     </button>
+
+                    <div style="height: 24px; width: 1px; background: #ccc; margin: 0 4px;"></div>
+
+                    <!-- Inizio Frazioni compatta -->
+                    <div class="match-times-compact" style="display: flex; align-items: center; gap: 8px; background: #fdf2e9; padding: 4px 10px; border-radius: 5px; border: 1px solid #f8c471;">
+                        <span title="Inizio Frazioni (Export TXT)" style="font-size: 0.85em;">⏱️</span>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="font-size: 0.7em; color: #7f8c8d; font-weight: bold;">1°T</span>
+                            <input type="text" id="matchStart1" value="00:00" placeholder="00:00" style="width: 45px; padding: 2px; border-radius: 3px; border: 1px solid #ccc; text-align: center; font-size: 0.8em;">
+                            
+                            <span style="font-size: 0.7em; color: #7f8c8d; font-weight: bold; margin-left: 4px;">2°T</span>
+                            <input type="text" id="matchStart2" value="45:00" placeholder="45:00" style="width: 45px; padding: 2px; border-radius: 3px; border: 1px solid #ccc; text-align: center; font-size: 0.8em;">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Sezione Tempi Match (Sostituita sopra al video) -->
-                <div class="match-times-section" style="background: #fdf2e9; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #f8c471; display: flex; align-items: center; gap: 15px;">
-                    <h4 style="margin: 0; color: #d35400; font-size: 0.85em; white-space: nowrap;">⏱️ Inizio Frazioni (Export TXT):</h4>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <label style="font-size: 0.75em; color: #7f8c8d;">1° T (mm:ss):</label>
-                        <input type="text" id="matchStart1" value="00:00" placeholder="00:00" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #ccc; text-align: center;">
-                        
-                        <label style="font-size: 0.75em; color: #7f8c8d; margin-left: 10px;">2° T (mm:ss):</label>
-                        <input type="text" id="matchStart2" value="45:00" placeholder="45:00" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #ccc; text-align: center;">
-                    </div>
-                    <p style="margin: 0; font-size: 0.7em; color: #a04000; font-style: italic;">*I tempi di inizio verranno sottratti dal timer nel TXT</p>
-                </div>
-                
                 <video id="videoPlayer" controls>
                     Il tuo browser non supporta il video HTML5.
                 </video>
