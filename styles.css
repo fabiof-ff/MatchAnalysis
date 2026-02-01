@@ -25,7 +25,7 @@ body {
 .header-bar {
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
-    padding: 10px 20px;
+    padding: 6px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -33,7 +33,7 @@ body {
 }
 
 .header-bar h1 {
-    font-size: 1.2em;
+    font-size: 1.25em;
     margin: 0;
     font-weight: 600;
     flex: 1;
@@ -99,7 +99,7 @@ header h1 {
 .header-bar {
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
-    padding: 15px 30px;
+    padding: 6px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -107,7 +107,7 @@ header h1 {
 }
 
 .header-bar h1 {
-    font-size: 1.2em;
+    font-size: 1.25em;
     margin: 0;
     font-weight: 600;
     flex: 1;
@@ -124,12 +124,12 @@ header h1 {
 }
 
 .tab-btn {
-    padding: 8px 16px;
+    padding: 5px 12px;
     background: #7f8c8d;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.85em;
     font-weight: 600;
     color: #ffffff;
     transition: all 0.3s ease;
@@ -171,7 +171,7 @@ header h1 {
     grid-template-columns: 0.6fr 1.6fr 0.8fr;
     gap: 15px;
     padding: 15px;
-    height: calc(100vh - 55px);
+    height: calc(100vh - 34px);
     align-items: stretch;
     transition: grid-template-columns 0.3s ease;
 }
