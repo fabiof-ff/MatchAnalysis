@@ -433,6 +433,9 @@ Write-Host "Operazione completata!" -ForegroundColor Green
 
 async function exportActionsToFFmpeg() {
     try {
+        console.log('Inizio exportActionsToFFmpeg');
+        if (!state) throw new Error('Stato dell\'applicazione non trovato');
+
         if (state.selectedActions.size === 0) {
             alert('Seleziona almeno un\'azione da esportare');
             return;
@@ -812,62 +815,83 @@ Write-Host "Operazione completata!" -ForegroundColor Green
         console.error('Errore durante l\'esportazione FFmpeg:', error);
         alert('Si è verificato un errore durante la creazione dello script: ' + error.message);
     }
-    
-    // Esporta JSON
-    const json = JSON.stringify(data, null, 2);
-    const fileNameJson = `match_analysis_${Date.now()}.json`;
-    await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
+}
 
-    // Helper per convertire mm:ss in secondi
-    const timeToSeconds = (timeStr) => {
-        if (!timeStr) return 0;
-        const parts = timeStr.split(':');
-        if (parts.length === 2) {
-            return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+async function exportActionsToJSON() {
+    try {
+        console.log('Inizio exportActionsToJSON');
+        if (!state) throw new Error('Stato dell\'applicazione non trovato');
+        
+        const data = {
+            exportDate: new Date().toISOString(),
+            videoName: state.currentVideo ? state.currentVideo.name : null,
+            teamNames: state.teamNames,
+            actions: state.actions.map(action => ({
+                ...action,
+                selected: state.selectedActions.has(action.id)
+            }))
+        };
+        
+        // Esporta JSON
+        const json = JSON.stringify(data, null, 2);
+        const fileNameJson = `match_analysis_${Date.now()}.json`;
+        await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
+
+        // Helper per convertire mm:ss in secondi
+        const timeToSeconds = (timeStr) => {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+            }
+            return parseFloat(timeStr) || 0;
+        };
+
+        // Esporta TXT (Formato: Timer Frazione Tag_Name Team Commento)
+        const val1 = document.getElementById('matchStart1')?.value || "00:00";
+        const val2 = document.getElementById('matchStart2')?.value || "45:00";
+        const start1 = timeToSeconds(val1);
+        const start2 = timeToSeconds(val2);
+        
+        let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
+        // Ordiniamo le azioni per tempo di inizio per il file di testo
+        const sortedActionsForTxt = [...state.actions].sort((a, b) => a.startTime - b.startTime);
+        
+        sortedActionsForTxt.forEach(action => {
+            // Escludi le immagini dall'export TXT
+            if (action.type === 'image') return;
+
+            let frazione = "1° T";
+            let matchTimeSeconds = 0;
+            
+            if (action.startTime >= start2) {
+                frazione = "2° T";
+                matchTimeSeconds = action.startTime - start2;
+            } else {
+                frazione = "1° T";
+                matchTimeSeconds = Math.max(0, action.startTime - start1);
+            }
+            
+            // Formato decimale: minuti + (secondi/60). Es: 1.5 significa 1 minuto e 30 secondi
+            const timerDecimale = (matchTimeSeconds / 60).toFixed(1);
+            
+            const tagName = action.tag ? action.tag.name : "";
+            const teamName = (action.tag && action.tag.team && state.teamNames && state.teamNames[action.tag.team]) 
+                ? state.teamNames[action.tag.team] 
+                : "";
+            const comment = action.comment || "";
+            
+            txtContent += `${timerDecimale}\t${frazione}\t${tagName}\t${teamName}\t${comment}\n`;
+        });
+
+        if (txtContent) {
+            const fileNameTxt = `match_analysis_${Date.now()}.txt`;
+            await saveFileInVideoFolder(txtContent, fileNameTxt, 'Elenco Azioni TXT');
         }
-        return parseFloat(timeStr) || 0;
-    };
-
-    // Esporta TXT (Formato: Timer Frazione Tag_Name Team Commento)
-    const val1 = document.getElementById('matchStart1')?.value || "00:00";
-    const val2 = document.getElementById('matchStart2')?.value || "45:00";
-    const start1 = timeToSeconds(val1);
-    const start2 = timeToSeconds(val2);
-    
-    let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
-    // Ordiniamo le azioni per tempo di inizio per il file di testo
-    const sortedActionsForTxt = [...state.actions].sort((a, b) => a.startTime - b.startTime);
-    
-    sortedActionsForTxt.forEach(action => {
-        // Escludi le immagini dall'export TXT
-        if (action.type === 'image') return;
-
-        let frazione = "1° T";
-        let matchTimeSeconds = 0;
-        
-        if (action.startTime >= start2) {
-            frazione = "2° T";
-            matchTimeSeconds = action.startTime - start2;
-        } else {
-            frazione = "1° T";
-            matchTimeSeconds = Math.max(0, action.startTime - start1);
-        }
-        
-        // Formato decimale: minuti + (secondi/60). Es: 1.5 significa 1 minuto e 30 secondi
-        const timerDecimale = (matchTimeSeconds / 60).toFixed(1);
-        
-        const tagName = action.tag ? action.tag.name : "";
-        const teamName = (action.tag && action.tag.team && state.teamNames && state.teamNames[action.tag.team]) 
-            ? state.teamNames[action.tag.team] 
-            : "";
-        const comment = action.comment || "";
-        
-        txtContent += `${timerDecimale}\t${frazione}\t${tagName}\t${teamName}\t${comment}\n`;
-    });
-
-    if (txtContent) {
-        const fileNameTxt = `match_analysis_${Date.now()}.txt`;
-        await saveFileInVideoFolder(txtContent, fileNameTxt, 'Elenco Azioni TXT');
+        console.log('Export completato con successo');
+    } catch (error) {
+        console.error('Errore in exportActionsToJSON:', error);
+        alert('Errore durante l\'esportazione delle azioni: ' + error.message);
     }
 }
 
@@ -912,15 +936,24 @@ function importActionsFromJSON(file) {
 }
 
 async function exportTagsToJSON() {
-    const data = {
-        exportDate: new Date().toISOString(),
-        teamNames: state.teamNames,
-        tags: state.tags
-    };
-    
-    const json = JSON.stringify(data, null, 2);
-    const fileName = `match_tags_${Date.now()}.json`;
-    await saveFileInVideoFolder(json, fileName, 'Tags JSON');
+    try {
+        console.log('Inizio exportTagsToJSON');
+        if (!state) throw new Error('Stato dell\'applicazione non trovato');
+
+        const data = {
+            exportDate: new Date().toISOString(),
+            teamNames: state.teamNames,
+            tags: state.tags
+        };
+        
+        const json = JSON.stringify(data, null, 2);
+        const fileName = `match_tags_${Date.now()}.json`;
+        await saveFileInVideoFolder(json, fileName, 'Tags JSON');
+        console.log('Export Tag completato con successo');
+    } catch (error) {
+        console.error('Errore in exportTagsToJSON:', error);
+        alert('Errore durante l\'esportazione dei tag: ' + error.message);
+    }
 }
 
 function importTagsFromJSON(file) {

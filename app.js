@@ -19,6 +19,9 @@ const state = {
     teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' } // Nomi squadre modificabili
 };
 
+// Rendiamo lo stato accessibile ad altri script (es. export.js)
+window.state = state;
+
 // Sequence Playback Logic (Main Player)
 let previewState = {
     isPlaying: false,
@@ -1302,11 +1305,11 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
                 </div>
                 <div class="action-info">
                     <select class="action-tag action-tag-select" 
-                            style="color: ${action.tag.color}; border: 1px solid transparent; background: transparent; font-weight: bold; cursor: pointer; padding: 2px; width: 100px; border-radius: 4px; font-size: 0.85em; text-overflow: ellipsis; white-space: nowrap;" 
+                            style="color: ${action.tag ? action.tag.color : '#7f8c8d'}; border: 1px solid transparent; background: transparent; font-weight: bold; cursor: pointer; padding: 2px; width: 100px; border-radius: 4px; font-size: 0.85em; text-overflow: ellipsis; white-space: nowrap;" 
                             onchange="window.changeActionTag('${action.id}', this.value)"
                             onmouseenter="this.style.border='1px solid #ccc'"
                             onmouseleave="this.style.border='1px solid transparent'">
-                        ${state.tags.map(t => `<option value="${t.id}" ${t.id === action.tag.id ? 'selected' : ''} style="color: ${t.color}">${t.name}</option>`).join('')}
+                        ${state.tags.map(t => `<option value="${t.id}" ${action.tag && t.id === action.tag.id ? 'selected' : ''} style="color: ${t.color}">${t.name}</option>`).join('')}
                     </select>
                     <div class="action-time">
                         ${isImage ? `Durata: <input type="number" step="0.5" min="0.5" value="${action.duration}" style="width: 45px; background: rgba(255,255,255,0.1); border: 1px solid rgba(0,0,0,0.1); color: inherit; padding: 0 2px; border-radius: 3px;" onchange="event.stopPropagation(); window.updateImageDuration('${action.id}', this.value)"> s` 
@@ -2258,14 +2261,52 @@ function loadStateFromLocalStorage() {
     }
 }
 
-// Export functions to global scope for inline event handlers
+// Export functions to global scope for inline event handlers and inter-file communication
 window.deleteTag = deleteTag;
+window.toggleTagSettings = toggleTagSettings;
 window.updateTeamName = updateTeamName;
 window.toggleActionSelection = toggleActionSelection;
 window.updateActionTime = updateActionTime;
 window.updateActionComment = updateActionComment;
 window.playAction = playAction;
+window.stopAction = stopAction;
 window.deleteAction = deleteAction;
+window.toggleTagsPanel = toggleTagsPanel;
+window.toggleActionsPanel = toggleActionsPanel;
+window.formatTime = formatTime;
+window.renderTags = renderTags;
+window.renderActions = renderActions;
+window.saveTagsToLocalStorage = saveTagsToLocalStorage;
+window.saveStateToLocalStorage = saveStateToLocalStorage;
+window.populateTagFilter = populateTagFilter;
+window.showNotification = showNotification;
+window.toggleSelectedFilter = toggleSelectedFilter;
+window.toggleFlagFilterPanel = toggleFlagFilterPanel;
+window.selectAllActions = selectAllActions;
+window.deselectAllActions = deselectAllActions;
+window.toggleFilterPanel = toggleFilterPanel;
+window.toggleCollapseAll = toggleCollapseAll;
+window.deleteSelectedActions = deleteSelectedActions;
+window.addImageAction = addImageAction;
+window.startPreviewSequence = startPreviewSequence;
+window.stopPreview = stopPreview;
+window.loadVideoWithPicker = loadVideoWithPicker;
+window.addNewTag = addNewTag;
+window.updateVideoTime = updateVideoTime;
+window.updateDuration = updateDuration;
+window.updateSliderDisplay = updateSliderDisplay;
+window.updateSliderTrack = updateSliderTrack;
+window.setupModalControls = setupModalControls;
+window.setupDraggableContainers = setupDraggableContainers;
+window.updateFlagFilterBtn = updateFlagFilterBtn;
+window.updateSelectedFilterBtn = updateSelectedFilterBtn;
+window.setupTabs = setupTabs;
+window.setupEventListeners = setupEventListeners;
+window.setupActionsListeners = setupActionsListeners;
+window.initializeDefaultTags = initializeDefaultTags;
+window.loadActionsFromLocalStorage = loadActionsFromLocalStorage;
+window.closeReorderModal = typeof closeReorderModal !== 'undefined' ? closeReorderModal : null;
+window.saveCustomOrder = typeof saveCustomOrder !== 'undefined' ? saveCustomOrder : null;
 
 // ============================================
 // Notifications
@@ -2472,5 +2513,4 @@ function toggleActionsPanel() {
     }
 }
 
-window.toggleTagsPanel = toggleTagsPanel;
-window.toggleActionsPanel = toggleActionsPanel;
+// Fine del file
