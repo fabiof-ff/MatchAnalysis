@@ -12,7 +12,7 @@
             <h1>⚽ Match Analysis - Analisi Video</h1>
             <div class="tabs-navigation">
                 <button class="tab-btn active" data-tab="analysis">📊 Analisi Video</button>
-
+                <button class="tab-btn" data-tab="live">🔴 Live Tagging</button>
                 <button class="tab-btn" data-tab="tools">🛠️ Strumenti Video</button>
             </div>
         </div>
@@ -89,6 +89,9 @@
                     </button>
                     <button id="exportFFmpegBtn" title="Esporta Script FFmpeg" style="background: linear-gradient(135deg, #e67e22, #d35400); display: flex; align-items: center; padding: 6px 10px; border: none; border-radius: 5px; color: white; cursor: pointer;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+                    </button>
+                    <button id="exportJsonToolbarBtn" title="Esporta Azioni JSON" style="background: linear-gradient(135deg, #34495e, #2c3e50); display: flex; align-items: center; padding: 6px 10px; border: none; border-radius: 5px; color: white; cursor: pointer;">
+                        <span style="font-weight: bold; font-size: 0.8em; margin: 0 2px;">JSON</span>
                     </button>
                     
                     <div style="height: 24px; width: 1px; background: #ccc; margin: 0 4px;"></div>
@@ -244,6 +247,60 @@
 
         </div>
         <!-- Fine Tab Analisi Video -->
+
+        <!-- Tab: Live Tagging -->
+        <div class="tab-content" id="live-tab">
+            <div class="live-container">
+                <div class="live-header">
+                    <div class="live-timer-display" id="liveTimerDisplay">00:00</div>
+                    <div class="live-timer-controls">
+                        <button onclick="modifyLiveTimer(-10)" class="live-ctrl-btn step">-10s</button>
+                        <button id="liveStartBtn" class="live-ctrl-btn start">AVVIA</button>
+                        <button id="livePauseBtn" class="live-ctrl-btn pause" style="display:none;">PAUSA</button>
+                        <button onclick="modifyLiveTimer(10)" class="live-ctrl-btn step">+10s</button>
+                        <button id="liveResetBtn" class="live-ctrl-btn reset">RESET</button>
+                        <button id="liveSet45Btn" class="live-ctrl-btn set-time">45:00</button>
+                        <button onclick="exportActionsToJSON()" class="live-ctrl-btn json-btn">JSON</button>
+                    </div>
+                </div>
+
+                <div class="live-main-grid">
+                    <div class="live-tag-column">
+                        <div class="live-column-header">
+                            <h3 class="live-column-title off">🔥 ATTACCO</h3>
+                            <input type="color" class="live-phase-color" oninput="updateLivePhaseColor('offensiva', this.value)" data-phase="offensiva" title="Colore Attacco">
+                        </div>
+                        <div id="liveTagListOffensive" class="live-tag-list"></div>
+                    </div>
+                    <div class="live-tag-column">
+                        <div class="live-column-header">
+                            <h3 class="live-column-title def">🛡️ DIFESA</h3>
+                            <input type="color" class="live-phase-color" oninput="updateLivePhaseColor('difensiva', this.value)" data-phase="difensiva" title="Colore Difesa">
+                        </div>
+                        <div id="liveTagListDefensive" class="live-tag-list"></div>
+                    </div>
+                    <div class="live-tag-column">
+                        <div class="live-column-header">
+                            <input type="text" class="live-team-input" value="SQUADRA A" oninput="updateTeamName('A', this.value)" data-team="A">
+                            <input type="color" class="live-team-color" oninput="updateLiveTeamColor('A', this.value)" data-team="A" title="Colore Squadra A">
+                        </div>
+                        <div id="liveTagListA" class="live-tag-list"></div>
+                    </div>
+                    <div class="live-tag-column">
+                        <div class="live-column-header">
+                            <input type="text" class="live-team-input" value="SQUADRA B" oninput="updateTeamName('B', this.value)" data-team="B">
+                            <input type="color" class="live-team-color" oninput="updateLiveTeamColor('B', this.value)" data-team="B" title="Colore Squadra B">
+                        </div>
+                        <div id="liveTagListB" class="live-tag-list"></div>
+                    </div>
+                </div>
+
+                <div class="live-footer">
+                    <h3 class="live-footer-title">ULTIME AZIONI</h3>
+                    <div id="liveActionsList" class="live-actions-list"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- Tab: Strumenti Video -->
         <div class="tab-content" id="tools-tab">

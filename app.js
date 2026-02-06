@@ -16,7 +16,15 @@ const state = {
     customOrder: [], // Ordinamento personalizzato delle azioni selezionate
     activeAction: null, // Azione attualmente controllata dallo slider
     collapsedGroups: new Set(), // Tag ID dei gruppi collassati nel pannello azioni
-    teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' } // Nomi squadre modificabili
+    teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' }, // Nomi squadre modificabili
+    
+    // Live Tagging State
+    liveTimer: {
+        startTime: 0,
+        running: false,
+        elapsed: 0,
+        interval: null
+    }
 };
 
 // Rendiamo lo stato accessibile ad altri script (es. export.js)
@@ -184,6 +192,17 @@ function setupEventListeners() {
             stopPreview();
         });
     }
+
+    // Live Tagging Listeners
+    const liveStartBtn = document.getElementById('liveStartBtn');
+    const livePauseBtn = document.getElementById('livePauseBtn');
+    const liveResetBtn = document.getElementById('liveResetBtn');
+    const liveSet45Btn = document.getElementById('liveSet45Btn');
+
+    if (liveStartBtn) liveStartBtn.addEventListener('click', startLiveTimer);
+    if (livePauseBtn) livePauseBtn.addEventListener('click', pauseLiveTimer);
+    if (liveResetBtn) liveResetBtn.addEventListener('click', resetLiveTimer);
+    if (liveSet45Btn) liveSet45Btn.addEventListener('click', () => setLiveTimerSeconds(45 * 60));
     
     // Merge Videos
     const selectMergeVideosBtn = document.getElementById('selectMergeVideosBtn');
@@ -356,6 +375,11 @@ function setupActionsListeners() {
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportActionsJSONBtn) exportActionsJSONBtn.addEventListener('click', exportActionsToJSON);
+    
+    // Pulsante JSON in toolbar superiore
+    const exportJsonToolbarBtn = document.getElementById('exportJsonToolbarBtn');
+    if (exportJsonToolbarBtn) exportJsonToolbarBtn.addEventListener('click', exportActionsToJSON);
+
     if (importActionsJSONInput) {
         importActionsJSONInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
@@ -436,6 +460,12 @@ function switchToTab(tabId) {
     if (selectedContent) {
         selectedContent.classList.add('active');
         console.log('Attivato contenuto');
+        
+        // Se passiamo alla tab live, renderizziamo i tag e le azioni recenti
+        if (tabId === 'live') {
+            renderLiveTags();
+            renderLiveActions();
+        }
     }
 }
 
@@ -2231,6 +2261,8 @@ function updateTeamName(team, name) {
         state.teamNames[team] = name;
         saveStateToLocalStorage();
         console.log(`Nome squadra ${team} aggiornato: ${name}`);
+        // Aggiorna l'UI del Live per riflettere il cambio nome se fatto da tab principale
+        renderLiveTags();
     }
 }
 
@@ -2511,6 +2543,251 @@ function toggleActionsPanel() {
             btn.textContent = 'AZIONI »';
         }
     }
+}
+
+/* --- LIVE TAGGING LOGIC --- */
+
+function startLiveTimer() {
+    if (state.liveTimer.running) return;
+    
+    state.liveTimer.running = true;
+    state.liveTimer.startTime = Date.now() - (state.liveTimer.elapsed * 1000);
+    
+    state.liveTimer.interval = setInterval(() => {
+        const now = Date.now();
+        state.liveTimer.elapsed = (now - state.liveTimer.startTime) / 1000;
+        updateLiveTimerDisplay();
+    }, 100);
+    
+    document.getElementById('liveStartBtn').style.display = 'none';
+    document.getElementById('livePauseBtn').style.display = 'block';
+}
+
+function pauseLiveTimer() {
+    state.liveTimer.running = false;
+    clearInterval(state.liveTimer.interval);
+    
+    document.getElementById('liveStartBtn').style.display = 'block';
+    document.getElementById('livePauseBtn').style.display = 'none';
+}
+
+function resetLiveTimer() {
+    if (confirm('Vuoi davvero resettare il timer?')) {
+        pauseLiveTimer();
+        state.liveTimer.elapsed = 0;
+        updateLiveTimerDisplay();
+    }
+}
+
+function setLiveTimerSeconds(seconds) {
+    state.liveTimer.elapsed = seconds;
+    if (state.liveTimer.running) {
+        state.liveTimer.startTime = Date.now() - (seconds * 1000);
+    }
+    updateLiveTimerDisplay();
+}
+
+function updateLiveTimerDisplay() {
+    const display = document.getElementById('liveTimerDisplay');
+    if (display) {
+        const totalSeconds = Math.floor(state.liveTimer.elapsed);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        display.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+}
+
+function renderLiveTags() {
+    console.log('Rendering Live Tags con stato attuale:', state.tags);
+    const lists = {
+        offensive: document.getElementById('liveTagListOffensive'),
+        defensive: document.getElementById('liveTagListDefensive'),
+        A: document.getElementById('liveTagListA'),
+        B: document.getElementById('liveTagListB')
+    };
+    
+    // Aggiorna gli input dei nomi e i selettori colore
+    document.querySelectorAll('.live-team-input').forEach(input => {
+        const team = input.dataset.team;
+        if (state.teamNames[team]) input.value = state.teamNames[team];
+    });
+
+    document.querySelectorAll('.live-team-color').forEach(input => {
+        const team = input.dataset.team;
+        // Prendi il colore del primo tag di quella squadra se disponibile
+        const teamTag = state.tags.find(t => t.team === team);
+        if (teamTag) input.value = teamTag.color;
+    });
+
+    document.querySelectorAll('.live-phase-color').forEach(input => {
+        const phase = input.dataset.phase;
+        // Prendi il colore del primo tag di quella fase
+        const phaseTag = state.tags.find(t => t.phase === phase);
+        if (phaseTag) input.value = phaseTag.color;
+    });
+
+    // Pulisci liste
+    Object.values(lists).forEach(list => { if(list) list.innerHTML = ''; });
+    
+    state.tags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'live-tag-btn';
+        
+        // APPLICAZIONE COLORE FORZATA CON FALLBACK E !IMPORTANT
+        const tagCol = tag.color || '#3498db';
+        btn.style.setProperty('background-color', tagCol, 'important');
+        btn.style.backgroundColor = tagCol; 
+        
+        btn.style.color = 'white';
+        btn.style.borderColor = 'rgba(0,0,0,0.2)';
+        
+        // MANCAVANO QUESTE RIGHE
+        btn.textContent = tag.name;
+        btn.onclick = () => createActionFromLiveTag(tag);
+
+        let targetList = null;
+        if (tag.phase === 'offensiva') targetList = lists.offensive;
+        else if (tag.phase === 'difensiva') targetList = lists.defensive;
+        else if (tag.team === 'A') targetList = lists.A;
+        else if (tag.team === 'B') targetList = lists.B;
+        
+        if (targetList) targetList.appendChild(btn);
+    });
+}
+
+function createActionFromLiveTag(tag) {
+    const currentTime = state.liveTimer.elapsed;
+    
+    // Cerchiamo il tag originale nello stato per assicurarci di avere i dati più freschi (incluso il colore corretto)
+    const freshTag = state.tags.find(t => t.id === tag.id) || tag;
+    
+    const action = {
+        id: Date.now().toString(),
+        tagId: freshTag.id,
+        tag: freshTag,
+        startTime: Math.max(0, currentTime - (freshTag.offsetBefore || 5)),
+        endTime: currentTime + (freshTag.offsetAfter || 5),
+        duration: (freshTag.offsetBefore || 5) + (freshTag.offsetAfter || 5),
+        comment: '',
+        flag: null,
+        type: 'video'
+    };
+    
+    state.actions.push(action);
+    state.selectedActions.add(action.id);
+    
+    // Salva e renderizza
+    saveActionsToLocalStorage();
+    renderActions();
+    renderLiveActions();
+    
+    // Feedback tattile se disponibile
+    if (window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+    }
+    
+    console.log('Azione creata da Live:', action);
+}
+
+function renderLiveActions() {
+    const list = document.getElementById('liveActionsList');
+    if (!list) return;
+    
+    // Mostriamo solo le ultime 10 azioni per non intasare lo smartphone
+    const recent = [...state.actions].reverse().slice(0, 10);
+    
+    list.innerHTML = recent.map(a => {
+        const totalSeconds = Math.floor(a.startTime);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        
+        return `
+            <div class="live-action-item" style="border-left-color: ${a.tag.color}">
+                <div class="live-action-content">
+                    <span class="live-action-name">${a.tag.name}</span>
+                    <span class="live-action-time">${timeStr}</span>
+                </div>
+                <button class="live-action-delete" onclick="deleteActionFromLive('${a.id}')" title="Elimina">×</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function deleteActionFromLive(actionId) {
+    if (confirm('Vuoi eliminare questa azione?')) {
+        state.actions = state.actions.filter(a => a.id !== actionId);
+        state.selectedActions.delete(actionId);
+        saveActionsToLocalStorage();
+        renderActions();
+        renderLiveActions();
+    }
+}
+
+function modifyLiveTimer(seconds) {
+    state.liveTimer.elapsed = Math.max(0, state.liveTimer.elapsed + seconds);
+    if (state.liveTimer.running) {
+        state.liveTimer.startTime = Date.now() - (state.liveTimer.elapsed * 1000);
+    }
+    updateLiveTimerDisplay();
+}
+
+function updateLiveTeamColor(team, color) {
+    console.log(`Aggiornamento colore team ${team} a: ${color}`);
+    // Aggiorna il colore nello stato per tutti i tag di quella squadra
+    state.tags.forEach(tag => {
+        if (tag.team === team) {
+            tag.color = color;
+        }
+    });
+
+    // Salva e renderizza ovunque
+    saveTagsToLocalStorage();
+    renderTags();
+    renderLiveTags();
+    
+    // Aggiorna anche le azioni esistenti per coerenza visiva
+    state.actions.forEach(action => {
+        if (action.tag && action.tag.team === team) {
+            action.tag.color = color;
+        }
+    });
+    renderActions();
+    renderLiveActions();
+    
+    // Forza il valore del picker nel caso sia stato chiamato via codice
+    document.querySelectorAll(`.live-team-color[data-team="${team}"]`).forEach(input => {
+        input.value = color;
+    });
+}
+
+function updateLivePhaseColor(phase, color) {
+    console.log(`Aggiornamento colore fase ${phase} a: ${color}`);
+    // Aggiorna il colore nello stato per tutti i tag di quella fase (attacco/difesa)
+    state.tags.forEach(tag => {
+        if (tag.phase === phase) {
+            tag.color = color;
+        }
+    });
+
+    // Salva e renderizza
+    saveTagsToLocalStorage();
+    renderTags();
+    renderLiveTags();
+
+    // Aggiorna azioni esistenti
+    state.actions.forEach(action => {
+        if (action.tag && action.tag.phase === phase) {
+            action.tag.color = color;
+        }
+    });
+    renderActions();
+    renderLiveActions();
+    
+    // Forza il valore del picker
+    document.querySelectorAll(`.live-phase-color[data-phase="${phase}"]`).forEach(input => {
+        input.value = color;
+    });
 }
 
 // Fine del file
