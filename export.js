@@ -441,22 +441,29 @@ async function exportActionsToFFmpeg() {
             return;
         }
     
-    // Usa sempre customOrder se disponibile, altrimenti ordina per tag/tempo
-    let selectedActionsList;
+    // Inizia con TUTTE le azioni selezionate dallo stato
+    let selectedActionsList = state.actions.filter(a => state.selectedActions.has(a.id));
+    
+    // Ordina le azioni selezionate
     if (state.customOrder && state.customOrder.length > 0) {
-        // Usa l'ordinamento personalizzato
-        selectedActionsList = state.customOrder
-            .map(id => state.actions.find(a => a.id === id))
-            .filter(a => a && state.selectedActions.has(a.id));
+        // Se esiste un ordine personalizzato, lo seguiamo (ma includiamo tutte le selezionate)
+        const orderMap = new Map();
+        state.customOrder.forEach((id, index) => orderMap.set(id, index));
+        
+        selectedActionsList.sort((a, b) => {
+            const indexA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const indexB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            
+            if (indexA !== indexB) return indexA - indexB; // Priorità all'ordine manuale
+            return a.startTime - b.startTime; // Altrimenti per tempo
+        });
     } else {
-        // Ordinamento per tag, poi per tempo
-        selectedActionsList = state.actions
-            .filter(a => state.selectedActions.has(a.id))
-            .sort((a, b) => {
-                const tagCompare = a.tag.name.localeCompare(b.tag.name);
-                if (tagCompare !== 0) return tagCompare;
-                return a.startTime - b.startTime;
-            });
+        // Ordinamento predefinito: per nome tag, poi per tempo
+        selectedActionsList.sort((a, b) => {
+            const tagCompare = a.tag.name.localeCompare(b.tag.name);
+            if (tagCompare !== 0) return tagCompare;
+            return a.startTime - b.startTime;
+        });
     }
 
     // Sanificazione: assicura che startTime < endTime e ricalcola durata
