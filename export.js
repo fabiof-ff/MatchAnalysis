@@ -505,6 +505,9 @@ async function exportActionsToFFmpeg() {
     // Leggi durata sfumatura dal selettore
     const xfadeDuration = parseFloat(document.getElementById('xfadeDuration')?.value || "0");
     const useXfade = xfadeDuration > 0 && selectedActionsList.length > 1;
+    
+    // Leggi opzione muto
+    const isMuted = document.getElementById('muteExportAudio')?.checked || false;
 
     // Calcola durata totale per stima
     const totalDuration = selectedActionsList.reduce((acc, a) => acc + a.duration, 0);
@@ -551,6 +554,7 @@ echo.
 echo Statistiche di esportazione:
 echo - Numero di clip: ${selectedActionsList.length}
 echo - Durata video finale: ${durationStr}
+echo - Audio: ${isMuted ? 'DISATTIVATO' : 'ATTIVATO'}
 echo - Data/Ora inizio: %TIME%
 echo.
 echo File input: "%INPUT_VIDEO%"
@@ -666,7 +670,8 @@ echo.
         // Aggiungiamo scale, pad e setsar al video clip per renderlo IDENTICO ai segmenti immagine
         const fullVf = `scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1,${vf}`;
 
-        ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -ar 44100 -ac 2 -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+        const audioParams = isMuted ? '-an' : '-c:a aac -b:a 128k -ar 44100 -ac 2';
+        ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 ${audioParams} -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
@@ -724,7 +729,8 @@ echo.
         const filterStr = filterParts.join('; ');
         await saveFileInVideoFolder(filterStr, filterFileName, 'FFmpeg Filter Script');
         
-        ffmpegScript += `ffmpeg ${inputs} -filter_complex_script "${filterFileName}" -map "[${currentOut}]" -map "[${currentAudioOut}]" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "%OUTPUT_VIDEO%"\n`;
+        const finalAudioParams = isMuted ? '-an' : '-map "[${currentAudioOut}]" -c:a aac -b:a 128k';
+        ffmpegScript += `ffmpeg ${inputs} -filter_complex_script "${filterFileName}" -map "[${currentOut}]" ${finalAudioParams} -c:v libx264 -preset fast -crf 23 "%OUTPUT_VIDEO%"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
         
         // Aggiungi il file filter ai file da pulire
