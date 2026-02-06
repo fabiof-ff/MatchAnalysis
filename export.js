@@ -600,7 +600,11 @@ echo.
             ffmpegScript += `if not exist "${batchSafeInput}" echo ATTENZIONE: Immagine "${fileNameSafe}" non trovata!\n`;
             
             // Crea un segmento video dall'immagine con gli STESSI parametri del video
-            ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -c:a aac -b:a 128k -ar 44100 -ac 2 "segment_${i}.mp4"\n`;
+            if (!isMuted) {
+                ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -map 0:v -map 1:a -c:a aac -b:a 128k -ar 44100 -ac 2 "segment_${i}.mp4"\n`;
+            } else {
+                ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -an "segment_${i}.mp4"\n`;
+            }
             ffmpegScript += `if errorlevel 1 goto error\n\n`;
             return;
         }
@@ -667,11 +671,17 @@ echo.
             vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=20:y=h-40`;
         }
         
-        // Aggiungiamo scale, pad e setsar al video clip per renderlo IDENTICO ai segmenti immagine
         const fullVf = `scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1,${vf}`;
 
-        const audioParams = isMuted ? '-an' : '-c:a aac -b:a 128k -ar 44100 -ac 2';
-        ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 ${audioParams} -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+        let audioParams = isMuted ? '-an' : '-c:a aac -b:a 128k -ar 44100 -ac 2';
+        // Se l'audio è attivo, usiamo l'audio originale. Se il video originale non avesse audio, 
+        // l'aggiunta di anullsrc in mix garantisce che la clip finale abbia sempre una traccia audio
+        // necessaria per la concatenazione successiva (specialmente con xfade/acrossfade).
+        if (!isMuted) {
+            ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[aout]" -map 0:v -map "[aout]" -c:a aac -b:a 128k -ar 44100 -ac 2 -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+        } else {
+            ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -an -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+        }
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
     
@@ -694,7 +704,9 @@ echo.
         // Prima clip: base
         inputs += `-i "segment_0.mp4" `;
         filterParts.push(`[0:v]settb=AVTB,setpts=PTS-STARTPTS[v0]`);
-        filterParts.push(`[0:a]atrim=0,asetpts=PTS-STARTPTS[a0]`);
+        if (!isMuted) {
+            filterParts.push(`[0:a]atrim=0,asetpts=PTS-STARTPTS[a0]`);
+        }
         
         let offset = selectedActionsList[0].duration;
         
@@ -709,19 +721,24 @@ echo.
             
             // Porta i timestamp a zero per ogni input clip
             filterParts.push(`[${i}:v]settb=AVTB,setpts=PTS-STARTPTS[${vIn}]`);
-            filterParts.push(`[${i}:a]atrim=0,asetpts=PTS-STARTPTS[${aIn}]`);
+            if (!isMuted) {
+                filterParts.push(`[${i}:a]atrim=0,asetpts=PTS-STARTPTS[${aIn}]`);
+            }
             
             // Calcola l'offset: dove INIZIA la sfumatura sulla clip corrente accumulata
             offset -= transDur;
             
             // Applica xfade video e acrossfade audio
-            // xfade gestisce internamente la sfumatura tra i due stream all'offset indicato
             filterParts.push(`[${currentOut}][${vIn}]xfade=transition=fade:duration=${transDur.toFixed(3)}:offset=${offset.toFixed(3)}[${vOut}]`);
-            filterParts.push(`[${currentAudioOut}][${aIn}]acrossfade=d=${transDur.toFixed(3)}[${aOut}]`);
+            if (!isMuted) {
+                filterParts.push(`[${currentAudioOut}][${aIn}]acrossfade=d=${transDur.toFixed(3)}[${aOut}]`);
+            }
             
             currentOut = vOut;
-            currentAudioOut = aOut;
-            // Aggiorna l'offset per la prossima clip (aggiungi la durata della clip i intera)
+            if (!isMuted) {
+                currentAudioOut = aOut;
+            }
+            // Aggiorna l'offset per la prossima clip
             offset += selectedActionsList[i].duration;
         }
 
@@ -729,7 +746,7 @@ echo.
         const filterStr = filterParts.join('; ');
         await saveFileInVideoFolder(filterStr, filterFileName, 'FFmpeg Filter Script');
         
-        const finalAudioParams = isMuted ? '-an' : '-map "[${currentAudioOut}]" -c:a aac -b:a 128k';
+        const finalAudioParams = isMuted ? '-an' : `-map "[${currentAudioOut}]" -c:a aac -b:a 128k`;
         ffmpegScript += `ffmpeg ${inputs} -filter_complex_script "${filterFileName}" -map "[${currentOut}]" ${finalAudioParams} -c:v libx264 -preset fast -crf 23 "%OUTPUT_VIDEO%"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
         
