@@ -862,8 +862,10 @@ async function exportActionsToJSON() {
         const start2 = timeToSeconds(val2);
         
         let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
-        // Ordiniamo le azioni per tempo di inizio per il file di testo
-        const sortedActionsForTxt = [...state.actions].sort((a, b) => a.startTime - b.startTime);
+        // Ordiniamo le azioni per tempo di inizio per il file di testo, solo quelle selezionate
+        const sortedActionsForTxt = state.actions
+            .filter(a => state.selectedActions.has(a.id))
+            .sort((a, b) => a.startTime - b.startTime);
         
         sortedActionsForTxt.forEach(action => {
             // Escludi le immagini dall'export TXT
