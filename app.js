@@ -63,11 +63,11 @@ function initializeDefaultTags() {
         { id: 'costr_centr', name: 'Costr.Centr.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 2, phase: 'offensiva' },
         { id: 'costr_din_att', name: 'Costr.din.att.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 3, phase: 'offensiva' },
         { id: 'tran_offen', name: 'Tran.Offen.', color: '#27ae60', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 4, phase: 'offensiva' },
-        { id: 'press_rimessa', name: 'Press. Rimessa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5, phase: 'difensiva' },
-        { id: 'prima_press_alta', name: 'Prima press.alta', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6, phase: 'difensiva' },
-        { id: 'press_din_centr', name: 'Press.din.centr.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 7, phase: 'difensiva' },
-        { id: 'dif_bassa', name: 'Dif.bassa', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 8, phase: 'difensiva' },
-        { id: 'tran_dif', name: 'Tran.Dif.', color: '#e74c3c', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 9, phase: 'difensiva' }
+        { id: 'press_rimessa', name: 'Press. Rimessa', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 5, phase: 'difensiva' },
+        { id: 'prima_press_alta', name: 'Prima press.alta', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 6, phase: 'difensiva' },
+        { id: 'press_din_centr', name: 'Press.din.centr.', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 7, phase: 'difensiva' },
+        { id: 'dif_bassa', name: 'Dif.bassa', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 8, phase: 'difensiva' },
+        { id: 'tran_dif', name: 'Tran.Dif.', color: '#3498db', offsetBefore: 5, offsetAfter: 5, isDefault: true, order: 9, phase: 'difensiva' }
     ];
 
     const matchEvents = [
@@ -122,10 +122,17 @@ function initializeDefaultTags() {
                     if (!existing) {
                         state.tags.push(dt);
                     } else if (dt.isDefault) {
-                        // Aggiorna l'ordine e la fase per riflettere le modifiche nel codice
+                        // Aggiorna ordine, fase e colore per riflettere le modifiche nel codice
                         existing.order = dt.order;
                         if (dt.phase) existing.phase = dt.phase;
+                        existing.color = dt.color;
                     }
+                });
+
+                // Forza i colori per fase anche per i tag custom
+                state.tags.forEach(t => {
+                    if (t.phase === 'offensiva') t.color = '#27ae60';
+                    if (t.phase === 'difensiva') t.color = '#3498db';
                 });
             } else {
                 console.log('localStorage vuoto o non valido, uso i default');
@@ -549,7 +556,6 @@ function updateDuration() {
 // Tag Management
 function addNewTag() {
     const nameInput = document.getElementById('newTagName');
-    const colorInput = document.getElementById('tagColor');
     const phaseInput = document.getElementById('tagPhaseInput');
     
     const name = nameInput.value.trim();
@@ -558,11 +564,14 @@ function addNewTag() {
         return;
     }
     
+    const phase = phaseInput.value;
+    const color = phase === 'offensiva' ? '#27ae60' : '#3498db';
+
     const newTag = {
         id: 'tag_' + Date.now(),
         name: name,
-        color: colorInput.value,
-        phase: phaseInput.value,
+        color: color,
+        phase: phase,
         offsetBefore: 5,
         offsetAfter: 5,
         isDefault: false,
@@ -584,10 +593,18 @@ function renderTags() {
     const tagListB = document.getElementById('tagListB');
     const teamNameAInput = document.getElementById('teamNameA');
     const teamNameBInput = document.getElementById('teamNameB');
+    const teamColorPickerA = document.getElementById('teamColorPickerA');
+    const teamColorPickerB = document.getElementById('teamColorPickerB');
     
-    // Aggiorna i nomi delle squadre nell'UI se gli input esistono
+    // Aggiorna i nomi e colori delle squadre nell'UI se gli input esistono
     if (teamNameAInput && state.teamNames) teamNameAInput.value = state.teamNames.A || 'SQUADRA A';
     if (teamNameBInput && state.teamNames) teamNameBInput.value = state.teamNames.B || 'SQUADRA B';
+    
+    // Sincronizza i color picker con il primo tag di ogni squadra
+    const firstTagA = state.tags.find(t => t.team === 'A');
+    if (firstTagA && teamColorPickerA) teamColorPickerA.value = firstTagA.color;
+    const firstTagB = state.tags.find(t => t.team === 'B');
+    if (firstTagB && teamColorPickerB) teamColorPickerB.value = firstTagB.color;
     
     console.log('===== renderTags CHIAMATA =====');
     
@@ -2211,9 +2228,13 @@ function loadActionsFromLocalStorage() {
         if (saved) {
             state.actions = JSON.parse(saved);
             
-            // Ripristina lo stato delle selezioni (checkbox) dalle azioni caricate
+            // Ripristina lo stato delle selezioni (checkbox) dalle azioni caricate e aggiorna colori per fase
             state.selectedActions.clear();
             state.actions.forEach(action => {
+                if (action.tag) {
+                    if (action.tag.phase === 'offensiva') action.tag.color = '#27ae60';
+                    if (action.tag.phase === 'difensiva') action.tag.color = '#3498db';
+                }
                 if (action.selected) {
                     state.selectedActions.add(action.id);
                 }
@@ -2261,8 +2282,25 @@ function updateTeamName(team, name) {
         state.teamNames[team] = name;
         saveStateToLocalStorage();
         console.log(`Nome squadra ${team} aggiornato: ${name}`);
-        // Aggiorna l'UI del Live per riflettere il cambio nome se fatto da tab principale
-        renderLiveTags();
+        
+        // 1. Aggiorna gli input nella tab Analisi Video
+        const analysisInput = document.getElementById(`teamName${team}`);
+        if (analysisInput && analysisInput.value !== name) {
+            analysisInput.value = name;
+        }
+
+        // 2. Aggiorna gli input nella tab Live Tagging
+        const liveInputs = document.querySelectorAll(`.live-team-input[data-team="${team}"]`);
+        liveInputs.forEach(input => {
+            if (input.value !== name) {
+                input.value = name;
+            }
+        });
+
+        // 3. Aggiorna eventuali titoli o etichette che usano il nome squadra
+        // Eseguiamo un render parziale o totale se necessario
+        renderLiveActions(); 
+        renderActions();
     }
 }
 
@@ -2619,13 +2657,6 @@ function renderLiveTags() {
         if (teamTag) input.value = teamTag.color;
     });
 
-    document.querySelectorAll('.live-phase-color').forEach(input => {
-        const phase = input.dataset.phase;
-        // Prendi il colore del primo tag di quella fase
-        const phaseTag = state.tags.find(t => t.phase === phase);
-        if (phaseTag) input.value = phaseTag.color;
-    });
-
     // Pulisci liste
     Object.values(lists).forEach(list => { if(list) list.innerHTML = ''; });
     
@@ -2633,9 +2664,9 @@ function renderLiveTags() {
         const btn = document.createElement('button');
         btn.className = 'live-tag-btn';
         
-        // APPLICAZIONE COLORE FORZATA CON FALLBACK E !IMPORTANT
-        const tagCol = tag.color || '#3498db';
-        btn.style.setProperty('background-color', tagCol, 'important');
+        // APPLICAZIONE COLORE FORZATA - Usa background per sovrascrivere il gradiente di default dei button
+        const tagCol = tag.color || (tag.phase === 'offensiva' ? '#27ae60' : '#3498db');
+        btn.style.background = tagCol;
         btn.style.backgroundColor = tagCol; 
         
         btn.style.color = 'white';
@@ -2677,7 +2708,7 @@ function createActionFromLiveTag(tag) {
     state.selectedActions.add(action.id);
     
     // Salva e renderizza
-    saveActionsToLocalStorage();
+    saveStateToLocalStorage();
     renderActions();
     renderLiveActions();
     
@@ -2718,7 +2749,7 @@ function deleteActionFromLive(actionId) {
     if (confirm('Vuoi eliminare questa azione?')) {
         state.actions = state.actions.filter(a => a.id !== actionId);
         state.selectedActions.delete(actionId);
-        saveActionsToLocalStorage();
+        saveStateToLocalStorage();
         renderActions();
         renderLiveActions();
     }
@@ -2734,6 +2765,13 @@ function modifyLiveTimer(seconds) {
 
 function updateLiveTeamColor(team, color) {
     console.log(`Aggiornamento colore team ${team} a: ${color}`);
+    
+    // Sincronizza i selettori colore in Analisi Video e Live Tagging
+    const pickers = document.querySelectorAll(`#teamColorPicker${team}, .live-team-color[data-team="${team}"]`);
+    pickers.forEach(p => {
+        if (p.value !== color) p.value = color;
+    });
+
     // Aggiorna il colore nello stato per tutti i tag di quella squadra
     state.tags.forEach(tag => {
         if (tag.team === team) {

@@ -39,7 +39,6 @@
                         <div style="height: 20px; width: 1px; background: #ccc; margin: 0 2px; flex-shrink: 0;"></div>
 
                         <input type="text" id="newTagName" placeholder="Tag..." style="flex: 1; min-width: 50px;">
-                        <input type="color" id="tagColor" value="#3498db" style="flex-shrink: 0;">
                         <select id="tagPhaseInput" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.85em; flex-shrink: 0;">
                             <option value="offensiva">🔥 OFF</option>
                             <option value="difensiva">🛡️ DIF</option>
@@ -66,8 +65,14 @@
                 <!-- Nuovo Sottopannello: Eventi Match -->
                 <div class="tag-panel" style="padding: 10px; border-top: 2px solid #ddd; flex: 1; display: flex; flex-direction: column; min-height: 0;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 0.8em; color: #7f8c8d;">
-                        <input type="text" id="teamNameA" value="SQUADRA A" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1.1em; width: 100%; outline: none; border-radius: 4px; padding: 2px;" onchange="updateTeamName('A', this.value)">
-                        <input type="text" id="teamNameB" value="SQUADRA B" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1.1em; width: 100%; outline: none; border-radius: 4px; padding: 2px;" onchange="updateTeamName('B', this.value)">
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="text" id="teamNameA" value="SQUADRA A" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1em; width: 0; flex: 1; outline: none; border-radius: 4px; padding: 2px;" oninput="updateTeamName('A', this.value)">
+                            <input type="color" id="teamColorPickerA" title="Colore Squadra A" style="width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0;" oninput="updateLiveTeamColor('A', this.value)">
+                        </div>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="text" id="teamNameB" value="SQUADRA B" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1em; width: 0; flex: 1; outline: none; border-radius: 4px; padding: 2px;" oninput="updateTeamName('B', this.value)">
+                            <input type="color" id="teamColorPickerB" title="Colore Squadra B" style="width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0;" oninput="updateLiveTeamColor('B', this.value)">
+                        </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; overflow-y: auto; align-content: start;">
                         <div id="tagListA" class="tag-list-column"></div>
@@ -267,15 +272,13 @@
                 <div class="live-main-grid">
                     <div class="live-tag-column">
                         <div class="live-column-header">
-                            <h3 class="live-column-title off">🔥 ATTACCO</h3>
-                            <input type="color" class="live-phase-color" oninput="updateLivePhaseColor('offensiva', this.value)" data-phase="offensiva" title="Colore Attacco">
+                            <h3 class="live-column-title off">🔥 FASE OFFENSIVA</h3>
                         </div>
                         <div id="liveTagListOffensive" class="live-tag-list"></div>
                     </div>
                     <div class="live-tag-column">
                         <div class="live-column-header">
-                            <h3 class="live-column-title def">🛡️ DIFESA</h3>
-                            <input type="color" class="live-phase-color" oninput="updateLivePhaseColor('difensiva', this.value)" data-phase="difensiva" title="Colore Difesa">
+                            <h3 class="live-column-title def">🛡️ FASE DIFENSIVA</h3>
                         </div>
                         <div id="liveTagListDefensive" class="live-tag-list"></div>
                     </div>
