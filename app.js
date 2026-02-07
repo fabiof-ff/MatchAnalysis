@@ -17,6 +17,7 @@ const state = {
     activeAction: null, // Azione attualmente controllata dallo slider
     collapsedGroups: new Set(), // Tag ID dei gruppi collassati nel pannello azioni
     teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' }, // Nomi squadre modificabili
+    score: { A: 0, B: 0 }, // Punteggio live
     
     // Live Tagging State
     liveTimer: {
@@ -2315,8 +2316,9 @@ function loadStateFromLocalStorage() {
             }
             if (data.actions) state.actions = data.actions;
             
-            // Carica nomi squadre se presenti nello stato vecchio (se salvato così)
+            // Carica nomi squadre e punteggio
             if (data.teamNames) state.teamNames = data.teamNames;
+            if (data.score) state.score = data.score;
             
             console.log('Stato caricato da localStorage - Tags custom:', state.tags.length);
         }
@@ -2660,7 +2662,13 @@ function renderLiveTags() {
     // Pulisci liste
     Object.values(lists).forEach(list => { if(list) list.innerHTML = ''; });
     
+    // Aggiorna anche i pulsanti GOL nel box cronometro
+    updateScoreUI();
+
     state.tags.forEach(tag => {
+        // ESCLUDI I TAG GOL DALLA LISTA GENERALE (Ora sono nel box cronometro)
+        if (tag.name.toUpperCase() === 'GOL') return;
+
         const btn = document.createElement('button');
         btn.className = 'live-tag-btn';
         
@@ -2707,6 +2715,12 @@ function createActionFromLiveTag(tag) {
     state.actions.push(action);
     state.selectedActions.add(action.id);
     
+    // Se è un GOL, incrementa il punteggio (se non già incrementato da handleLiveGol)
+    if (freshTag.name.toUpperCase() === 'GOL' && freshTag.team && !arguments[1]) {
+        state.score[freshTag.team]++;
+        updateScoreUI();
+    }
+    
     // Salva e renderizza
     saveStateToLocalStorage();
     renderActions();
@@ -2719,6 +2733,55 @@ function createActionFromLiveTag(tag) {
     
     console.log('Azione creata da Live:', action);
 }
+
+// Funzione specifica per gestire il GOL dal nuovo box cronometro
+function handleLiveGol(team) {
+    const golTag = state.tags.find(t => t.name.toUpperCase() === 'GOL' && t.team === team);
+    if (golTag) {
+        // Passiamo true come secondo argomento per dire a createActionFromLiveTag 
+        // che l'incremento del punteggio lo gestiamo qui (per evitare doppi incrementi)
+        createActionFromLiveTag(golTag, true);
+        state.score[team]++;
+        updateScoreUI();
+        saveStateToLocalStorage();
+    } else {
+        alert("Tag 'GOL' non trovato per la squadra " + team);
+    }
+}
+
+function updateScoreUI() {
+    const scoreA = document.getElementById('scoreA');
+    const scoreB = document.getElementById('scoreB');
+    if (scoreA) scoreA.textContent = state.score.A;
+    if (scoreB) scoreB.textContent = state.score.B;
+
+    // Aggiorna anche i nomi/colori dei pulsanti GOL nel box
+    const btnA = document.getElementById('liveGolBtnA');
+    const btnB = document.getElementById('liveGolBtnB');
+    if (btnA) {
+        // Rimosso il nome squadra, solo "GOL"
+        const tagA = state.tags.find(t => t.name.toUpperCase() === 'GOL' && t.team === 'A');
+        if (tagA) btnA.style.background = tagA.color;
+    }
+    if (btnB) {
+        // Rimosso il nome squadra, solo "GOL"
+        const tagB = state.tags.find(t => t.name.toUpperCase() === 'GOL' && t.team === 'B');
+        if (tagB) btnB.style.background = tagB.color;
+    }
+}
+
+function resetScore() {
+    if (confirm("Vuoi azzerare il punteggio?")) {
+        state.score.A = 0;
+        state.score.B = 0;
+        updateScoreUI();
+        saveStateToLocalStorage();
+    }
+}
+
+// Export functions to global
+window.handleLiveGol = handleLiveGol;
+window.resetScore = resetScore;
 
 function renderLiveActions() {
     const list = document.getElementById('liveActionsList');

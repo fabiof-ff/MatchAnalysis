@@ -257,7 +257,17 @@
         <div class="tab-content" id="live-tab">
             <div class="live-container">
                 <div class="live-header">
-                    <div class="live-timer-display" id="liveTimerDisplay">00:00</div>
+                    <div class="live-score-row">
+                        <button id="liveGolBtnA" class="live-gol-btn" onclick="handleLiveGol('A')">GOL</button>
+                        <div class="live-timer-score-container">
+                            <div class="live-timer-display" id="liveTimerDisplay">00:00</div>
+                            <div class="live-score-display" onclick="resetScore()" title="Clicca per resettare">
+                                <span id="scoreA">0</span> - <span id="scoreB">0</span>
+                            </div>
+                        </div>
+                        <button id="liveGolBtnB" class="live-gol-btn" onclick="handleLiveGol('B')">GOL</button>
+                    </div>
+
                     <div class="live-timer-controls">
                         <button onclick="modifyLiveTimer(-10)" class="live-ctrl-btn step">-10s</button>
                         <button id="liveStartBtn" class="live-ctrl-btn start">AVVIA</button>
@@ -271,30 +281,26 @@
 
                 <div class="live-main-grid">
                     <div class="live-tag-column">
-                        <div class="live-column-header">
-                            <h3 class="live-column-title off">🔥 FASE OFFENSIVA</h3>
-                        </div>
                         <div id="liveTagListOffensive" class="live-tag-list"></div>
                     </div>
                     <div class="live-tag-column">
-                        <div class="live-column-header">
-                            <h3 class="live-column-title def">🛡️ FASE DIFENSIVA</h3>
-                        </div>
                         <div id="liveTagListDefensive" class="live-tag-list"></div>
                     </div>
-                    <div class="live-tag-column">
-                        <div class="live-column-header">
-                            <input type="text" class="live-team-input" value="SQUADRA A" oninput="updateTeamName('A', this.value)" data-team="A">
-                            <input type="color" class="live-team-color" oninput="updateLiveTeamColor('A', this.value)" data-team="A" title="Colore Squadra A">
+                    <div class="live-teams-row">
+                        <div class="live-tag-column">
+                            <div class="live-column-header">
+                                <input type="text" class="live-team-input" value="SQUADRA A" oninput="updateTeamName('A', this.value)" data-team="A">
+                                <input type="color" class="live-team-color" oninput="updateLiveTeamColor('A', this.value)" data-team="A" title="Colore Squadra A">
+                            </div>
+                            <div id="liveTagListA" class="live-tag-list"></div>
                         </div>
-                        <div id="liveTagListA" class="live-tag-list"></div>
-                    </div>
-                    <div class="live-tag-column">
-                        <div class="live-column-header">
-                            <input type="text" class="live-team-input" value="SQUADRA B" oninput="updateTeamName('B', this.value)" data-team="B">
-                            <input type="color" class="live-team-color" oninput="updateLiveTeamColor('B', this.value)" data-team="B" title="Colore Squadra B">
+                        <div class="live-tag-column">
+                            <div class="live-column-header">
+                                <input type="text" class="live-team-input" value="SQUADRA B" oninput="updateTeamName('B', this.value)" data-team="B">
+                                <input type="color" class="live-team-color" oninput="updateLiveTeamColor('B', this.value)" data-team="B" title="Colore Squadra B">
+                            </div>
+                            <div id="liveTagListB" class="live-tag-list"></div>
                         </div>
-                        <div id="liveTagListB" class="live-tag-list"></div>
                     </div>
                 </div>
 

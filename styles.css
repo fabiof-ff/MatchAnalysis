@@ -1665,47 +1665,106 @@ button:active {
     flex-direction: column;
     height: calc(100vh - 50px);
     background: #fdfdfd;
-    padding: 10px;
-    gap: 10px;
+    padding: 5px; /* Ridotto */
+    gap: 8px;
 }
 
 .live-header {
     background: #2c3e50;
     color: white;
-    padding: 10px;
-    border-radius: 12px;
+    padding: 10px 8px;
+    border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     display: flex;
+    flex-direction: column; /* Timer sopra, pulsanti sotto */
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
 }
 
 .live-timer-display {
-    font-size: 2.2em;
+    font-size: 2.5em; /* Un po' più grande visto che ora ha la sua riga */
     font-weight: 800;
     font-family: 'Courier New', Courier, monospace;
     margin: 0;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     color: #2ecc71;
-    min-width: 90px;
+    text-align: center;
+}
+
+.live-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+.live-timer-score-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.live-timer-display {
+    font-size: 1.8em; /* Ridotto leggermente per stare sulla riga */
+    font-weight: 800;
+    font-family: 'Courier New', Courier, monospace;
+    margin: 0;
+    line-height: 1;
+    color: #2ecc71;
+}
+
+.live-score-display {
+    font-size: 1.5em; /* Ridotto */
+    font-weight: 900;
+    color: white;
+    background: rgba(0,0,0,0.3);
+    padding: 2px 12px;
+    border-radius: 6px;
+    font-family: monospace;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.live-gol-btn {
+    flex: 0 0 70px; /* Larghezza fissa per i pulsanti GOL */
+    height: 60px; /* Più alti */
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 900;
+    font-size: 1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+    transition: transform 0.05s;
+}
+
+.live-gol-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
 }
 
 .live-timer-controls {
     display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-    flex: 1;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: wrap; /* Permette ai pulsanti di andare su due righe */
+    width: 100%;
 }
 
 .live-ctrl-btn {
-    padding: 8px 12px;
+    padding: 6px 2px; /* Ridotto padding laterale */
     border-radius: 6px;
     border: none;
     font-weight: bold;
-    font-size: 0.85em;
+    font-size: 0.65em; /* Leggermente più piccolo per farli stare tutti */
     cursor: pointer;
     text-transform: uppercase;
+    flex: 1; /* Permette a tutti di dividersi lo spazio equamente */
+    min-width: 45px; /* Minimo ridotto */
+    text-align: center;
 }
 
 .live-ctrl-btn.json-btn {
@@ -1728,59 +1787,118 @@ button:active {
 .live-ctrl-btn.set-time { background: #3498db; color: white; }
 
 .live-main-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 10px;
+    padding: 2px 5px;
 }
 
 .live-tag-column {
     display: flex;
     flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.live-teams-row {
+    display: flex;
     gap: 8px;
+    width: 100%;
+    margin-top: 15px; /* Sposta più in basso i box squadre e palette */
+    padding-top: 15px;
+    border-top: 1px dashed #ddd; /* Aggiunge anche una separazione visiva */
+}
+
+.live-teams-row .live-tag-column {
+    flex: 1;
+}
+
+.live-teams-row .live-tag-list {
+    grid-template-columns: repeat(3, 1fr) !important;
+}
+
+.live-column-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1f3f5;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border-bottom: 2px solid #ced4da;
+    height: 24px; /* Altezza fissa per risparmiare spazio */
+}
+
+.live-team-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-weight: 800;
+    font-size: 0.6em;
+    text-transform: uppercase;
+    padding: 0;
+    min-width: 0;
+}
+
+.live-team-color {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #adb5bd;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 2px;
+    background: white;
 }
 
 .live-column-title {
-    font-size: 0.8em;
-    padding: 5px;
+    font-size: 0.6em;
+    padding: 2px 4px;
     border-radius: 4px;
     text-align: center;
-    font-weight: 800;
+    font-weight: 900;
+    margin-bottom: 2px;
+    letter-spacing: 1px;
 }
 
-.live-column-title.off { background: #e8f5e9; color: #2e7d32; border-bottom: 3px solid #2e7d32; }
-.live-column-title.def { background: #e3f2fd; color: #1565c0; border-bottom: 3px solid #1565c0; }
-.live-column-title.team-a { background: #e3f2fd; color: #1565c0; border-bottom: 3px solid #1565c0; }
-.live-column-title.team-b { background: #fff3e0; color: #ef6c00; border-bottom: 3px solid #ef6c00; }
+.live-column-title.off { background: #e8f5e9; color: #2e7d32; border-bottom: 2px solid #2e7d32; }
+.live-column-title.def { background: #e3f2fd; color: #1565c0; border-bottom: 2px solid #1565c0; }
+.live-column-title.team-a { background: #e3f2fd; color: #1565c0; border-bottom: 2px solid #1565c0; }
+.live-column-title.team-b { background: #fff3e0; color: #ef6c00; border-bottom: 2px solid #ef6c00; }
 
 .live-tag-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr)); /* Forza larghezza identica ignorando il contenuto */
+    gap: 3px;
+    width: 100%;
 }
 
-/* Tag buttons in Live Mode - BIGGER FOR TOUCH */
+/* Tag buttons in Live Mode - BIGGER FOR TOUCH, COMPACT FOR MOBILE ROWS */
 .live-tag-btn {
-    padding: 15px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(0,0,0,0.1);
+    padding: 2px 1px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.15);
     color: white;
-    font-weight: 700;
-    font-size: 0.9em;
+    font-weight: 800;
+    font-size: 0.48em;
     text-align: center;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     text-transform: uppercase;
-    word-wrap: break-word;
-    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 46px; /* Aumentato del 20% (da 38px) per migliorare il touch */
+    min-width: 0;
+    overflow: hidden;
+    word-break: break-all;
+    line-height: 0.9;
+    transition: transform 0.05s ease;
 }
 
 .live-tag-btn:active {
-    transform: scale(0.96);
-    filter: brightness(1.2);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    transform: scale(0.95);
+    filter: brightness(1.1);
 }
 
 .live-footer {
