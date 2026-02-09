@@ -281,7 +281,7 @@ echo.
 `;
     
     // FFmpeg command
-    ffmpegScript += `ffmpeg -i "%INPUT_VIDEO%"${scaleFilter} -c:v libx264 -crf ${crf} -preset medium -c:a aac -b:a 128k "%OUTPUT_VIDEO%"\n`;
+    ffmpegScript += `ffmpeg -i "%INPUT_VIDEO%"${scaleFilter} -c:v libx264 -crf ${crf} -preset medium -c:a aac -b:a 128k -nostdin "%OUTPUT_VIDEO%"\n`;
     ffmpegScript += `if errorlevel 1 goto error\n\n`;
     
     // Success
@@ -301,6 +301,7 @@ echo Dimensione prima: %SIZE_BEFORE% bytes
 echo Dimensione dopo: %SIZE_AFTER% bytes
 echo.
 
+pause
 explorer /select,"%OUTPUT_VIDEO%"
 goto end
 
@@ -372,22 +373,21 @@ echo.
 
 set "OUTPUT_VIDEO=merged_video_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%%time:~6,2%.mp4"
 set "OUTPUT_VIDEO=%OUTPUT_VIDEO: =0%"
+    set "START_TIME=%TIME%"
 
-`;
+    `;
 
     // Create concat file
     ffmpegScript += `echo Creazione lista concatenazione...\n`;
-    ffmpegScript += `(\n`;
-    videoNames.forEach((name) => {
-        ffmpegScript += `echo file '${name}'\n`;
+    videoNames.forEach((name, index) => {
+        const redirect = index === 0 ? '>' : '>>';
+        ffmpegScript += `echo file '${name}' ${redirect} merge_list.txt\n`;
     });
-    ffmpegScript += `) > merge_list.txt\n\n`;
+    ffmpegScript += `\n`;
     
     // Merge videos
     ffmpegScript += `echo Unione dei video in corso...\necho.\n`;
-    ffmpegScript += `ffmpeg -f concat -safe 0 -i merge_list.txt -c copy "%OUTPUT_VIDEO%"\n`;
-    ffmpegScript += `if errorlevel 1 goto error\n\n`;
-    
+    ffmpegScript += `ffmpeg -f concat -safe 0 -i merge_list.txt -c copy -nostdin "%OUTPUT_VIDEO%"\n`;
     // Cleanup
     ffmpegScript += `echo.\necho Pulizia file temporanei...\n`;
     ffmpegScript += `del merge_list.txt\n\n`;
@@ -397,7 +397,7 @@ set "OUTPUT_VIDEO=%OUTPUT_VIDEO: =0%"
     videoNames.forEach((name, i) => {
         ffmpegScript += `echo   ${i + 1}. ${name}\n`;
     });
-    ffmpegScript += `echo.\nexplorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
+    ffmpegScript += `echo.\npause\nexplorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
     
     // Error handling
     ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che:\necho - FFmpeg sia installato e nel PATH\necho - Tutti i video siano nella stessa cartella dello script\necho - I nomi dei file siano corretti\necho.\npause\ngoto end\n\n:end\n`;
@@ -601,9 +601,9 @@ echo.
             
             // Crea un segmento video dall'immagine con gli STESSI parametri del video
             if (!isMuted) {
-                ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -map 0:v -map 1:a -c:a aac -b:a 128k -ar 44100 -ac 2 "segment_${i}.mp4"\n`;
+                ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -map 0:v -map 1:a -c:a aac -b:a 128k -ar 44100 -ac 2 -nostdin "segment_${i}.mp4"\n`;
             } else {
-                ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -an "segment_${i}.mp4"\n`;
+                ffmpegScript += `ffmpeg -hide_banner -loglevel error -loop 1 -r 30 -i "${batchSafeInput}" -t ${action.duration.toFixed(3)} -c:v libx264 -preset fast -crf 23 -vf "scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1" -an -nostdin "segment_${i}.mp4"\n`;
             }
             ffmpegScript += `if errorlevel 1 goto error\n\n`;
             return;
@@ -678,9 +678,9 @@ echo.
         // l'aggiunta di anullsrc in mix garantisce che la clip finale abbia sempre una traccia audio
         // necessaria per la concatenazione successiva (specialmente con xfade/acrossfade).
         if (!isMuted) {
-            ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[aout]" -map 0:v -map "[aout]" -c:a aac -b:a 128k -ar 44100 -ac 2 -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+            ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -f lavfi -i "anullsrc=channel_layout=stereo:sample_rate=44100" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[aout]" -map 0:v -map "[aout]" -c:a aac -b:a 128k -ar 44100 -ac 2 -avoid_negative_ts make_zero -nostdin "segment_${i}.mp4"\n`;
         } else {
-            ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -an -avoid_negative_ts make_zero "segment_${i}.mp4"\n`;
+            ffmpegScript += `ffmpeg -hide_banner -loglevel error -ss ${action.startTime.toFixed(3)} -i "%INPUT_VIDEO%" -t ${action.duration.toFixed(3)} -r 30 -vf "${fullVf}" -c:v libx264 -preset fast -crf 23 -an -avoid_negative_ts make_zero -nostdin "segment_${i}.mp4"\n`;
         }
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     });
@@ -747,7 +747,7 @@ echo.
         await saveFileInVideoFolder(filterStr, filterFileName, 'FFmpeg Filter Script');
         
         const finalAudioParams = isMuted ? '-an' : `-map "[${currentAudioOut}]" -c:a aac -b:a 128k`;
-        ffmpegScript += `ffmpeg ${inputs} -filter_complex_script "${filterFileName}" -map "[${currentOut}]" ${finalAudioParams} -c:v libx264 -preset fast -crf 23 "%OUTPUT_VIDEO%"\n`;
+        ffmpegScript += `ffmpeg ${inputs} -filter_complex_script "${filterFileName}" -map "[${currentOut}]" ${finalAudioParams} -c:v libx264 -preset fast -crf 23 -nostdin "%OUTPUT_VIDEO%"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
         
         // Aggiungi il file filter ai file da pulire
@@ -755,15 +755,15 @@ echo.
     } else {
         // Metodo classico concat (senza sfumature)
         ffmpegScript += `echo.\necho Creazione lista concatenazione...\n`;
-        ffmpegScript += `(\n`;
         selectedActionsList.forEach((_, i) => {
-            ffmpegScript += `echo file 'segment_${i}.mp4'\n`;
+            const redirect = i === 0 ? '>' : '>>';
+            ffmpegScript += `echo file 'segment_${i}.mp4' ${redirect} concat_list.txt\n`;
         });
-        ffmpegScript += `) > concat_list.txt\n\n`;
+        ffmpegScript += `\n`;
         
         // Concatenate
         ffmpegScript += `echo Unione dei ${selectedActionsList.length} clip...\necho.\n`;
-        ffmpegScript += `ffmpeg -f concat -safe 0 -i concat_list.txt -c copy "%OUTPUT_VIDEO%"\n`;
+        ffmpegScript += `ffmpeg -f concat -safe 0 -i concat_list.txt -c copy -nostdin "%OUTPUT_VIDEO%"\n`;
         ffmpegScript += `if errorlevel 1 goto error\n\n`;
     }
     
@@ -797,8 +797,7 @@ echo.
             ffmpegScript += `\n`;
         }
     });
-    ffmpegScript += `echo.\n`;
-    ffmpegScript += `explorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
+    ffmpegScript += `echo.\npause\nexplorer /select,"%OUTPUT_VIDEO%"\ngoto end\n\n`;
     
     // Error handling
     ffmpegScript += `:error\necho.\necho ERRORE: Si e' verificato un problema.\necho Verifica che:\necho - FFmpeg sia installato e nel PATH\necho - Il file video sia nella stessa cartella dello script\necho - Non ci siano caratteri speciali proibiti nel commento\necho.\necho Se vedi errori "Fontconfig", prova a installare una versione completa di FFmpeg\necho o a disabilitare temporaneamente i testi sovrapposti.\necho.\npause\ngoto end\n\n:end\n`;
