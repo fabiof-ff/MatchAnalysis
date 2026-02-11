@@ -442,7 +442,7 @@ async function exportActionsToFFmpeg() {
         }
     
     // Inizia con TUTTE le azioni selezionate dallo stato
-    let selectedActionsList = state.actions.filter(a => state.selectedActions.has(a.id));
+    let selectedActionsList = state.analysisActions.filter(a => state.selectedActions.has(a.id));
     
     // Ordina le azioni selezionate
     if (state.customOrder && state.customOrder.length > 0) {
@@ -847,26 +847,34 @@ Write-Host "Operazione completata!" -ForegroundColor Green
     }
 }
 
-async function exportActionsToJSON() {
+async function exportActionsToJSON(source = 'analysis') {
     try {
-        console.log('Inizio exportActionsToJSON');
+        console.log(`Inizio exportActionsToJSON (source: ${source})`);
         if (!state) throw new Error('Stato dell\'applicazione non trovato');
         
         const data = {
             exportDate: new Date().toISOString(),
+            exportSource: source,
             videoName: state.currentVideo ? state.currentVideo.name : null,
             teamNames: state.teamNames,
-            actions: state.actions.map(action => ({
+            score: state.score
+        };
+
+        if (source === 'live') {
+            data.actions = state.liveActions;
+        } else {
+            // Default: analisi
+            data.actions = state.analysisActions.map(action => ({
                 ...action,
                 selected: state.selectedActions.has(action.id)
-            }))
-        };
+            }));
+        }
         
         // Esporta JSON
         const json = JSON.stringify(data, null, 2);
-        const fileNameJson = `match_analysis_${Date.now()}.json`;
-        await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
-        console.log('Export JSON completato con successo');
+        const fileNameJson = `match_${source}_${Date.now()}.json`;
+        await saveFileInVideoFolder(json, fileNameJson, `Match Analysis ${source === 'live' ? 'Live' : 'Video'} JSON`);
+        console.log(`Export JSON ${source} completato con successo`);
     } catch (error) {
         console.error('Errore in exportActionsToJSON:', error);
         alert('Errore durante l\'esportazione delle azioni: ' + error.message);
@@ -896,7 +904,7 @@ async function exportActionsToTXT() {
         
         let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
         // Ordiniamo tutte le azioni per tempo di inizio per il file di testo
-        const sortedActionsForTxt = state.actions
+        const sortedActionsForTxt = state.analysisActions
             .slice()
             .sort((a, b) => a.startTime - b.startTime);
         
@@ -943,18 +951,34 @@ function importActionsFromJSON(file) {
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            const actions = Array.isArray(data) ? data : data.actions;
-            if (!actions || actions.length === 0) {
+            
+            // Determiniamo quali azioni stiamo importando
+            let analysisActions = data.analysisActions;
+            let liveActions = data.liveActions;
+            
+            // Fallback per compatibilità con file vecchi o esportazioni singole
+            if (!analysisActions && !liveActions) {
+                if (data.exportSource === 'live') {
+                    liveActions = data.actions;
+                } else {
+                    // Se non specificato o 'analysis', o formato vecchio
+                    analysisActions = Array.isArray(data) ? data : data.actions;
+                }
+            }
+            
+            if (!analysisActions && !liveActions) {
                 alert('File JSON non valido o senza azioni.');
                 return;
             }
 
-            if (confirm(`Importare ${actions.length} azioni?\n\nQuesto sostituirà le azioni attuali.`)) {
-                state.actions = actions;
+            const count = (analysisActions ? analysisActions.length : 0) + (liveActions ? liveActions.length : 0);
+            if (confirm(`Importare ${count} azioni?\n\nQuesto sostituirà le azioni attuali.`)) {
+                if (analysisActions) state.analysisActions = analysisActions;
+                if (liveActions) state.liveActions = liveActions;
 
                 // Ripristina lo stato delle selezioni (checkbox)
                 state.selectedActions.clear();
-                actions.forEach(action => {
+                state.analysisActions.forEach(action => {
                     if (action.selected) {
                         state.selectedActions.add(action.id);
                     }
@@ -963,11 +987,17 @@ function importActionsFromJSON(file) {
                 // Se il JSON contiene i nomi squadre, importali
                 if (data.teamNames) {
                     state.teamNames = data.teamNames;
-                    // Chiamiamo renderTags per aggiornare gli input dei nomi squadre
                     if (typeof renderTags === 'function') renderTags();
                 }
                 
+                // Se il JSON contiene lo score, importalo
+                if (data.score) {
+                    state.score = data.score;
+                    if (typeof updateScoreDisplay === 'function') updateScoreDisplay();
+                }
+                
                 renderActions();
+                if (typeof renderLiveActions === 'function') renderLiveActions();
                 saveStateToLocalStorage();
                 showNotification('✅ Azioni importate con successo!', 'success');
             }

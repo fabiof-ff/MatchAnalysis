@@ -5,20 +5,21 @@ const state = {
     currentVideo: null,
     videoFiles: [],
     tags: [],
-    actions: [],
+    analysisActions: [], // Azioni specifiche per la Tab Analisi Video
+    liveActions: [],     // Azioni specifiche per la Tab Live Tagging
     selectedTag: null,
     markedStart: null,
     markedEnd: null,
-    selectedActions: new Set(),
+    selectedActions: new Set(), // Selezione per Analisi Video
     filterTags: new Set(), // Filtro multiplo per tag
     filterSelected: false, // Filtro azioni selezionate
     filterFlag: null, // Filtro per flag (positive/negative/null)
-    customOrder: [], // Ordinamento personalizzato delle azioni selezionate
+    customOrder: [], // Ordinamento personalizzato delle azioni di Analisi Video
     activeAction: null, // Azione attualmente controllata dallo slider
     collapsedGroups: new Set(), // Tag ID dei gruppi collassati nel pannello azioni
     actionsViewMode: 'grouped', // 'grouped' o 'free'
     teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' }, // Nomi squadre modificabili
-    score: { A: 0, B: 0 }, // Punteggio live
+    score: { A: 0, B: 0 }, // Punteggio live (usato solo in Live Tagging)
     
     // Live Tagging State
     liveTimer: {
@@ -389,7 +390,7 @@ function setupActionsListeners() {
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
     if (exportActionsTXTBtn) exportActionsTXTBtn.addEventListener('click', exportActionsToTXT);
-    if (exportActionsJSONBtn) exportActionsJSONBtn.addEventListener('click', exportActionsToJSON);
+    if (exportActionsJSONBtn) exportActionsJSONBtn.addEventListener('click', () => exportActionsToJSON('analysis'));
 
     if (importActionsJSONInput) {
         importActionsJSONInput.addEventListener('change', (e) => {
@@ -845,7 +846,7 @@ function createActionFromTag(tag) {
         comment: ''
     };
     
-    state.actions.push(action);
+    state.analysisActions.push(action);
     state.selectedTag = tag;
     
     renderActions();
@@ -940,7 +941,7 @@ function createAction() {
         comment: ''
     };
     
-    state.actions.push(action);
+    state.analysisActions.push(action);
     
     // Reset markers
     state.markedStart = null;
@@ -973,7 +974,7 @@ function addImageAction(file) {
         comment: file.name
     };
     
-    state.actions.push(action);
+    state.analysisActions.push(action);
     state.selectedActions.add(action.id);
     
     // Aggiungi all'ordine personalizzato se esiste
@@ -1005,7 +1006,7 @@ function renderActions() {
     if (savedViewMode) state.actionsViewMode = savedViewMode;
 
     // Calcola il totale tempo delle azioni selezionate
-    const selectedActionsData = state.actions.filter(a => state.selectedActions.has(a.id));
+    const selectedActionsData = state.analysisActions.filter(a => state.selectedActions.has(a.id));
     
     // Calcolo totali per fase
     // ... rest of the function ...
@@ -1054,7 +1055,7 @@ function renderActions() {
     }
     
     // Filtra le azioni se ci sono filtri attivi
-    let filteredActions = state.actions;
+    let filteredActions = state.analysisActions;
     
     // Filtro per Tag
     if (state.filterTags && state.filterTags.size > 0) {
@@ -1457,7 +1458,7 @@ function handleActionDragOver(e, container) {
     // In modalità gruppi, permettiamo lo spostamento solo se il contenitore è quello di origine
     if (state.actionsViewMode === 'grouped') {
         const actionId = draggingAction.dataset.actionId;
-        const action = state.actions.find(a => a.id === actionId);
+        const action = state.analysisActions.find(a => a.id === actionId);
         if (action && action.tag.id !== container.parentElement.dataset.tagId) {
             e.dataTransfer.dropEffect = 'none';
             return;
@@ -1482,7 +1483,7 @@ function handleActionDrop(e, container) {
         const draggingAction = document.querySelector('.action-item.dragging');
         if (draggingAction) {
             const actionId = draggingAction.dataset.actionId;
-            const action = state.actions.find(a => a.id === actionId);
+            const action = state.analysisActions.find(a => a.id === actionId);
             if (action && action.tag.id !== container.parentElement.dataset.tagId) {
                 return; // Annulla il drop se il tag non corrisponde
             }
@@ -1587,7 +1588,7 @@ function openReorderModal() {
     }
     
     // Crea una lista di azioni selezionate con il loro ordine attuale
-    const selectedActionsList = state.actions
+    const selectedActionsList = state.analysisActions
         .filter(a => state.selectedActions.has(a.id))
         .sort((a, b) => a.startTime - b.startTime);
     
@@ -1722,9 +1723,9 @@ function saveCustomOrder() {
 
 function selectAllActions() {
     // Seleziona tutte le azioni visibili (filtrate)
-    let actionsToSelect = state.actions;
+    let actionsToSelect = state.analysisActions;
     if (state.filterTags.size > 0) {
-        actionsToSelect = state.actions.filter(a => state.filterTags.has(a.tag.id));
+        actionsToSelect = state.analysisActions.filter(a => state.filterTags.has(a.tag.id));
     }
     
     actionsToSelect.forEach(action => {
@@ -1766,7 +1767,7 @@ function toggleActionSelection(actionId) {
 }
 
 window.changeActionTag = function(actionId, newTagId) {
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
     
     const newTag = state.tags.find(t => t.id === newTagId);
@@ -1780,7 +1781,7 @@ window.changeActionTag = function(actionId, newTagId) {
 };
 
 function updateActionTime(actionId, type, value) {
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
     
     const time = parseFloat(value);
@@ -1889,7 +1890,7 @@ function updateSliderDisplay(type, value) {
 }
 
 function updateActionTimeDisplay(actionId) {
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
     
     // Trova gli slider per questa azione
@@ -1908,7 +1909,7 @@ function updateActionTimeDisplay(actionId) {
 }
 
 function updateActionComment(actionId, comment) {
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
     
     action.comment = comment;
@@ -1916,7 +1917,7 @@ function updateActionComment(actionId, comment) {
 }
 
 function updateImageDuration(actionId, duration) {
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action || action.type !== 'image') return;
     
     const d = parseFloat(duration);
@@ -1932,7 +1933,7 @@ window.updateImageDuration = updateImageDuration;
 function playAction(actionId) {
     if (previewState.isPlaying) stopPreview();
     
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
     
     const videoPlayer = document.getElementById('videoPlayer');
@@ -2004,7 +2005,7 @@ window.toggleAllComments = function() {
 
 function deleteAction(actionId) {
     if (confirm('Sei sicuro di voler eliminare questa azione?')) {
-        state.actions = state.actions.filter(a => a.id !== actionId);
+        state.analysisActions = state.analysisActions.filter(a => a.id !== actionId);
         state.selectedActions.delete(actionId);
         renderActions();
         saveStateToLocalStorage();
@@ -2013,7 +2014,7 @@ function deleteAction(actionId) {
 
 // Funzione globale per gestire i flag delle azioni
 window.toggleActionFlag = function(actionId, flagType) {
-    const action = state.actions.find(a => a.id === actionId);
+    const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
 
     if (flagType === 'positive') {
@@ -2087,7 +2088,7 @@ function deleteSelectedActions() {
     }
     
     if (confirm(`Sei sicuro di voler eliminare ${state.selectedActions.size} azione/i?`)) {
-        state.actions = state.actions.filter(a => !state.selectedActions.has(a.id));
+        state.analysisActions = state.analysisActions.filter(a => !state.selectedActions.has(a.id));
         state.selectedActions.clear();
         renderActions();
         saveStateToLocalStorage();
@@ -2106,7 +2107,7 @@ function openHighlightModal() {
     
     preview.innerHTML = '<h3>Azioni Selezionate:</h3>';
     
-    const selectedActionsList = state.actions
+    const selectedActionsList = state.analysisActions
         .filter(a => state.selectedActions.has(a.id))
         .sort((a, b) => a.startTime - b.startTime);
     
@@ -2134,7 +2135,7 @@ function generateHighlight() {
         return;
     }
     
-    const selectedActionsList = state.actions
+    const selectedActionsList = state.analysisActions
         .filter(a => state.selectedActions.has(a.id))
         .sort((a, b) => a.startTime - b.startTime);
     
@@ -2219,13 +2220,13 @@ function saveTagsToLocalStorage() {
 
 function loadActionsFromLocalStorage() {
     try {
-        const saved = localStorage.getItem('matchAnalysisActions');
-        if (saved) {
-            state.actions = JSON.parse(saved);
+        const savedAnalysis = localStorage.getItem('matchAnalysisActions');
+        if (savedAnalysis) {
+            state.analysisActions = JSON.parse(savedAnalysis);
             
             // Ripristina lo stato delle selezioni (checkbox) dalle azioni caricate e aggiorna colori per fase
             state.selectedActions.clear();
-            state.actions.forEach(action => {
+            state.analysisActions.forEach(action => {
                 if (action.tag) {
                     if (action.tag.phase === 'offensiva') action.tag.color = '#27ae60';
                     if (action.tag.phase === 'difensiva') action.tag.color = '#3498db';
@@ -2235,7 +2236,20 @@ function loadActionsFromLocalStorage() {
                 }
             });
             
-            console.log('Azioni caricate:', state.actions.length);
+            console.log('Azioni analisi caricate:', state.analysisActions.length);
+        }
+
+        const savedLive = localStorage.getItem('matchAnalysisLiveActions');
+        if (savedLive) {
+            state.liveActions = JSON.parse(savedLive);
+            console.log('Azioni live caricate:', state.liveActions.length);
+        }
+
+        // Carica score se presente
+        const savedScore = localStorage.getItem('matchAnalysisScore');
+        if (savedScore) {
+            state.score = JSON.parse(savedScore);
+            updateScoreDisplay();
         }
         
         // Carica customOrder
@@ -2260,14 +2274,16 @@ function saveStateToLocalStorage() {
     saveTagsToLocalStorage();
     try {
         // Aggiungiamo lo stato della selezione alle azioni prima di salvarle
-        const actionsToSave = state.actions.map(action => ({
+        const analysisActionsToSave = state.analysisActions.map(action => ({
             ...action,
             selected: state.selectedActions.has(action.id)
         }));
-        localStorage.setItem('matchAnalysisActions', JSON.stringify(actionsToSave));
+        localStorage.setItem('matchAnalysisActions', JSON.stringify(analysisActionsToSave));
+        localStorage.setItem('matchAnalysisLiveActions', JSON.stringify(state.liveActions));
         localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
         localStorage.setItem('matchAnalysisTeamNames', JSON.stringify(state.teamNames));
         localStorage.setItem('matchAnalysisViewMode', state.actionsViewMode);
+        localStorage.setItem('matchAnalysisScore', JSON.stringify(state.score));
     } catch (e) {
         console.error('Errore nel salvataggio azioni:', e);
     }
@@ -2405,7 +2421,7 @@ function showNotification(message, type = 'info') {
 // Sequence Playback Logic (Main Player)
 function startPreviewSequence() {
     // Collect selected actions
-    let filteredActions = state.actions.filter(a => state.selectedActions.has(a.id));
+    let filteredActions = state.analysisActions.filter(a => state.selectedActions.has(a.id));
 
     if (filteredActions.length === 0) {
         alert("Seleziona almeno un'azione per avviare la sequenza.");
@@ -2521,7 +2537,7 @@ function refreshPreviewSequence() {
     const currentAction = previewState.selectedActions[previewState.currentIndex];
     
     // Ricalcoliamo l'ordine (stessa logica di startPreviewSequence)
-    let filteredActions = state.actions.filter(a => state.selectedActions.has(a.id));
+    let filteredActions = state.analysisActions.filter(a => state.selectedActions.has(a.id));
     
     let sortedActions;
     if (state.customOrder && state.customOrder.length > 0) {
@@ -2714,8 +2730,7 @@ function createActionFromLiveTag(tag) {
         type: 'video'
     };
     
-    state.actions.push(action);
-    state.selectedActions.add(action.id);
+    state.liveActions.push(action);
     
     // Se è un GOL, incrementa il punteggio (se non già incrementato da handleLiveGol)
     if (freshTag.name.toUpperCase() === 'GOL' && freshTag.team && !arguments[1]) {
@@ -2723,9 +2738,8 @@ function createActionFromLiveTag(tag) {
         updateScoreUI();
     }
     
-    // Salva e renderizza
+    // Salva e renderizza (Solo Live)
     saveStateToLocalStorage();
-    renderActions();
     renderLiveActions();
     
     // Feedback tattile se disponibile
@@ -2756,19 +2770,18 @@ function reduceLiveGol(team) {
     if (state.score[team] > 0) {
         state.score[team]--;
         
-        // Opzionale: Rimuovi l'ultima azione di tipo GOL creata per questa squadra
+        // Opzionale: Rimuovi l'ultima azione di tipo GOL creata per questa squadra nelle azioni Live
         const golTag = state.tags.find(t => t.name.toUpperCase() === 'GOL' && t.team === team);
         if (golTag) {
-            const lastGolActionIndex = [...state.actions].reverse().findIndex(a => a.tag.id === golTag.id);
+            const lastGolActionIndex = [...state.liveActions].reverse().findIndex(a => a.tag.id === golTag.id);
             if (lastGolActionIndex !== -1) {
-                const actualIndex = state.actions.length - 1 - lastGolActionIndex;
-                state.actions.splice(actualIndex, 1);
+                const actualIndex = state.liveActions.length - 1 - lastGolActionIndex;
+                state.liveActions.splice(actualIndex, 1);
             }
         }
         
         updateScoreUI();
         saveStateToLocalStorage();
-        renderActions();
         renderLiveActions();
         showNotification(`Gol rimosso per ${state.teamNames[team]}`, 'info');
     }
@@ -2876,7 +2889,7 @@ function renderLiveActions() {
     if (!list) return;
     
     // Mostriamo solo le ultime 10 azioni per non intasare lo smartphone
-    const recent = [...state.actions].reverse().slice(0, 10);
+    const recent = [...state.liveActions].reverse().slice(0, 10);
     
     list.innerHTML = recent.map(a => {
         const totalSeconds = Math.floor(a.startTime);
@@ -2898,23 +2911,18 @@ function renderLiveActions() {
 
 function deleteActionFromLive(actionId) {
     if (confirm('Vuoi eliminare questa azione?')) {
-        state.actions = state.actions.filter(a => a.id !== actionId);
-        state.selectedActions.delete(actionId);
+        state.liveActions = state.liveActions.filter(a => a.id !== actionId);
         saveStateToLocalStorage();
-        renderActions();
         renderLiveActions();
     }
 }
 
 function clearAllActions() {
     if (confirm('ATTENZIONE: Sei sicuro di voler eliminare TUTTE le azioni registrate?\nQuesta operazione non è annullabile.')) {
-        state.actions = [];
-        state.selectedActions.clear();
-        state.customOrder = [];
+        state.liveActions = [];
         state.score = { A: 0, B: 0 }; // Resetta anche il punteggio per coerenza
         
         saveStateToLocalStorage();
-        renderActions();
         renderLiveActions();
         updateScoreUI();
         
@@ -2952,7 +2960,12 @@ function updateLiveTeamColor(team, color) {
     renderLiveTags();
     
     // Aggiorna anche le azioni esistenti per coerenza visiva
-    state.actions.forEach(action => {
+    state.analysisActions.forEach(action => {
+        if (action.tag && action.tag.team === team) {
+            action.tag.color = color;
+        }
+    });
+    state.liveActions.forEach(action => {
         if (action.tag && action.tag.team === team) {
             action.tag.color = color;
         }
@@ -2981,7 +2994,12 @@ function updateLivePhaseColor(phase, color) {
     renderLiveTags();
 
     // Aggiorna azioni esistenti
-    state.actions.forEach(action => {
+    state.analysisActions.forEach(action => {
+        if (action.tag && action.tag.phase === phase) {
+            action.tag.color = color;
+        }
+    });
+    state.liveActions.forEach(action => {
         if (action.tag && action.tag.phase === phase) {
             action.tag.color = color;
         }
