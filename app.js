@@ -356,6 +356,7 @@ function setupActionsListeners() {
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const exportFFmpegBtn = document.getElementById('exportFFmpegBtn');
     const exportActionsJSONBtn = document.getElementById('exportActionsJSONBtn');
+    const exportActionsTXTBtn = document.getElementById('exportActionsTXTBtn');
     const importActionsJSONInput = document.getElementById('importActionsJSONInput');
     const addImageActionBtn = document.getElementById('addImageActionBtn');
     const addImageActionInput = document.getElementById('addImageActionInput');
@@ -370,6 +371,7 @@ function setupActionsListeners() {
         deleteSelectedBtn: !!deleteSelectedBtn,
         exportFFmpegBtn: !!exportFFmpegBtn,
         exportActionsJSONBtn: !!exportActionsJSONBtn,
+        exportActionsTXTBtn: !!exportActionsTXTBtn,
         importActionsJSONInput: !!importActionsJSONInput,
         addImageActionBtn: !!addImageActionBtn,
         exportTagsJSONBtn: !!exportTagsJSONBtn,
@@ -382,11 +384,8 @@ function setupActionsListeners() {
     if (collapseAllBtn) collapseAllBtn.addEventListener('click', toggleCollapseAll);
     if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedActions);
     if (exportFFmpegBtn) exportFFmpegBtn.addEventListener('click', exportActionsToFFmpeg);
+    if (exportActionsTXTBtn) exportActionsTXTBtn.addEventListener('click', exportActionsToTXT);
     if (exportActionsJSONBtn) exportActionsJSONBtn.addEventListener('click', exportActionsToJSON);
-    
-    // Pulsante JSON in toolbar superiore
-    const exportJsonToolbarBtn = document.getElementById('exportJsonToolbarBtn');
-    if (exportJsonToolbarBtn) exportJsonToolbarBtn.addEventListener('click', exportActionsToJSON);
 
     if (importActionsJSONInput) {
         importActionsJSONInput.addEventListener('change', (e) => {
