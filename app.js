@@ -212,6 +212,9 @@ function setupEventListeners() {
     if (livePauseBtn) livePauseBtn.addEventListener('click', pauseLiveTimer);
     if (liveResetBtn) liveResetBtn.addEventListener('click', resetLiveTimer);
     if (liveSet45Btn) liveSet45Btn.addEventListener('click', () => setLiveTimerSeconds(45 * 60));
+
+    // Supporto per il "lungo tocco" sui pulsanti GOL (per ridurli)
+    setupLiveGolLongPress();
     
     // Merge Videos
     const selectMergeVideosBtn = document.getElementById('selectMergeVideosBtn');
@@ -2745,6 +2748,92 @@ function handleLiveGol(team) {
     } else {
         alert("Tag 'GOL' non trovato per la squadra " + team);
     }
+}
+
+// Riduce il punteggio di 1 per la squadra specificata
+function reduceLiveGol(team) {
+    if (state.score[team] > 0) {
+        state.score[team]--;
+        
+        // Opzionale: Rimuovi l'ultima azione di tipo GOL creata per questa squadra
+        const golTag = state.tags.find(t => t.name.toUpperCase() === 'GOL' && t.team === team);
+        if (golTag) {
+            const lastGolActionIndex = [...state.actions].reverse().findIndex(a => a.tag.id === golTag.id);
+            if (lastGolActionIndex !== -1) {
+                const actualIndex = state.actions.length - 1 - lastGolActionIndex;
+                state.actions.splice(actualIndex, 1);
+            }
+        }
+        
+        updateScoreUI();
+        saveStateToLocalStorage();
+        renderActions();
+        renderLiveActions();
+        showNotification(`Gol rimosso per ${state.teamNames[team]}`, 'info');
+    }
+}
+
+// Configura il tocco lungo sui pulsanti GOL
+function setupLiveGolLongPress() {
+    ['A', 'B'].forEach(team => {
+        const btn = document.getElementById(`liveGolBtn${team}`);
+        if (!btn) return;
+
+        let pressTimer;
+        const longPressDuration = 800; // ms per considerare il tocco "lungo"
+        let isLongPress = false;
+
+        // Mouse Events
+        btn.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Solo tasto sinistro
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                reduceLiveGol(team);
+            }, longPressDuration);
+        });
+
+        btn.addEventListener('mouseup', (e) => {
+            clearTimeout(pressTimer);
+            if (isLongPress) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            clearTimeout(pressTimer);
+        });
+
+        // Touch Events (per tablet/smartphone)
+        btn.addEventListener('touchstart', (e) => {
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                reduceLiveGol(team);
+            }, longPressDuration);
+        }, { passive: true });
+
+        btn.addEventListener('touchend', (e) => {
+            clearTimeout(pressTimer);
+            if (isLongPress) {
+                if (e.cancelable) e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        });
+
+        // Intercetta il click normale ed evita che scatti se è stato un tocco lungo
+        const originalOnClick = btn.onclick;
+        btn.onclick = null; // Rimuoviamo l'onclick inline per gestirlo via listener
+        
+        btn.addEventListener('click', (e) => {
+            if (isLongPress) {
+                isLongPress = false;
+                return;
+            }
+            handleLiveGol(team);
+        });
+    });
 }
 
 function updateScoreUI() {
