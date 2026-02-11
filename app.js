@@ -16,6 +16,7 @@ const state = {
     customOrder: [], // Ordinamento personalizzato delle azioni selezionate
     activeAction: null, // Azione attualmente controllata dallo slider
     collapsedGroups: new Set(), // Tag ID dei gruppi collassati nel pannello azioni
+    actionsViewMode: 'grouped', // 'grouped' o 'free'
     teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' }, // Nomi squadre modificabili
     score: { A: 0, B: 0 }, // Punteggio live
     
@@ -984,15 +985,27 @@ function addImageAction(file) {
 }
 
 // Actions Rendering
+function toggleViewMode() {
+    state.actionsViewMode = state.actionsViewMode === 'grouped' ? 'free' : 'grouped';
+    saveStateToLocalStorage();
+    renderActions();
+    showNotification(`Visualizzazione ${state.actionsViewMode === 'grouped' ? 'per Gruppi' : 'Libera'} attivata`, 'info', 2000);
+}
+
 function renderActions() {
     const actionsList = document.getElementById('actionsList');
     if (!actionsList) return;
     actionsList.innerHTML = '';
     
+    // Carica viewMode se presente in localStorage (per persistenza immediata)
+    const savedViewMode = localStorage.getItem('matchAnalysisViewMode');
+    if (savedViewMode) state.actionsViewMode = savedViewMode;
+
     // Calcola il totale tempo delle azioni selezionate
     const selectedActionsData = state.actions.filter(a => state.selectedActions.has(a.id));
     
     // Calcolo totali per fase
+    // ... rest of the function ...
     let offSec = 0;
     let defSec = 0;
     let totalSec = 0;
@@ -1086,97 +1099,39 @@ function renderActions() {
         });
     }
     
-    // Mostra sempre i gruppi
-    renderActionsGroupedByTag(sortedActions, actionsList);
+    // Cambia modalità di rendering
+    if (state.actionsViewMode === 'free') {
+        renderActionsFreeMode(sortedActions, actionsList);
+    } else {
+        renderActionsGroupedByTag(sortedActions, actionsList);
+    }
 }
 
-function renderActionsSingleMode(sortedActions, actionsList) {
-    // Funzione legacy per rendering singolo (non più usata)
+function renderActionsFreeMode(sortedActions, actionsList) {
     sortedActions.forEach(action => {
-        const actionItem = document.createElement('div');
-        actionItem.className = 'action-item';
-        actionItem.draggable = true;
-        actionItem.dataset.actionId = action.id;
-        
-        if (state.selectedActions.has(action.id)) {
-            actionItem.classList.add('selected-action');
-        }
-        actionItem.style.borderLeftColor = action.tag.color;
-        
-        actionItem.innerHTML = `
-            <input type="checkbox" class="action-checkbox" 
-                   ${state.selectedActions.has(action.id) ? 'checked' : ''}
-                   onchange="toggleActionSelection('${action.id}')">
-            <div class="action-info">
-                <div class="action-tag" style="color: ${action.tag.color}">${action.tag.name}</div>
-                <div class="action-time">${formatTime(action.startTime)} - ${formatTime(action.endTime)}</div>
-                <div class="action-duration-input">
-                    <span>Inizio:</span>
-                    <input type="number" step="0.1" value="${action.startTime.toFixed(1)}" 
-                           onchange="updateActionTime('${action.id}', 'start', this.value)">
-                    <span>Fine:</span>
-                    <input type="number" step="0.1" value="${action.endTime.toFixed(1)}" 
-                           onchange="updateActionTime('${action.id}', 'end', this.value)">
-                </div>
-                <div class="action-comment-input">
-                    <textarea placeholder="Aggiungi un commento..." 
-                              onchange="updateActionComment('${action.id}', this.value)">${action.comment || ''}</textarea>
-                </div>
-            </div>
-            <div class="action-controls-btns">
-                <button class="btn-play" onclick="playAction('${action.id}')">▶</button>
-                <button class="btn-delete" onclick="deleteAction('${action.id}')">×</button>
-            </div>
-        `;
-        
-        // Drag and drop per riordinare
-        actionItem.addEventListener('dragstart', (e) => {
-            e.stopPropagation();
-            actionItem.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', action.id);
-        });
-        
-        actionItem.addEventListener('dragend', (e) => {
-            actionItem.classList.remove('dragging');
-        });
-        
-        actionItem.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            const draggingItem = document.querySelector('.action-item.dragging');
-            if (draggingItem && draggingItem !== actionItem) {
-                const rect = actionItem.getBoundingClientRect();
-                const midpoint = rect.top + rect.height / 2;
-                if (e.clientY < midpoint) {
-                    actionsList.insertBefore(draggingItem, actionItem);
-                } else {
-                    actionsList.insertBefore(draggingItem, actionItem.nextSibling);
-                }
-            }
-        });
-        
-        actionItem.addEventListener('drop', (e) => {
-            e.preventDefault();
-            // Salva il nuovo ordine
-            saveActionsOrder();
-        });
-        
+        const actionItem = createActionItem(action);
         actionsList.appendChild(actionItem);
     });
-}
+    
+    // Setup drag and drop for free mode
+    actionsList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const draggingAction = document.querySelector('.action-item.dragging');
+        if (!draggingAction) return;
+        
+        const afterElement = getDragAfterElementAction(actionsList, e.clientY);
+        
+        if (afterElement == null) {
+            actionsList.appendChild(draggingAction);
+        } else {
+            actionsList.insertBefore(draggingAction, afterElement);
+        }
+    });
 
-function saveActionsOrder() {
-    const actionsList = document.getElementById('actionsList');
-    const items = actionsList.querySelectorAll('.action-item[data-action-id]');
-    
-    // Crea un nuovo ordine personalizzato basato sulla posizione corrente
-    state.customOrder = Array.from(items).map(item => item.dataset.actionId);
-    
-    // Salva nel localStorage
-    saveStateToLocalStorage();
-    
-    showNotification('✅ Ordine aggiornato! Verrà usato nell\'export.', 'success', 2000);
+    actionsList.addEventListener('drop', (e) => {
+        e.preventDefault();
+        saveCompleteActionsOrder();
+    });
 }
 
 function toggleFilterPanel() {
@@ -1216,6 +1171,127 @@ function toggleCollapseAll() {
 }
 
 // Rendering raggruppato per tag con drag-and-drop di interi gruppi
+function createActionItem(action) {
+    const actionItem = document.createElement('div');
+    actionItem.className = 'action-item';
+    if (state.actionsViewMode === 'grouped') {
+        actionItem.classList.add('action-in-group');
+    }
+    actionItem.draggable = true;
+    actionItem.dataset.actionId = action.id;
+    actionItem.style.borderLeftColor = action.tag.color;
+    
+    if (state.selectedActions.has(action.id)) {
+        actionItem.classList.add('selected-action');
+    }
+    if (state.activeAction && state.activeAction.id === action.id) {
+        actionItem.classList.add('active-action');
+    }
+    
+    const isImage = action.type === 'image';
+    
+    actionItem.innerHTML = `
+        <input type="checkbox" class="action-checkbox" 
+               ${state.selectedActions.has(action.id) ? 'checked' : ''}
+               onchange="toggleActionSelection('${action.id}')">
+        <div class="action-flags">
+            ${!isImage ? `
+            <button class="action-flag-btn ${action.positive ? 'active' : ''}" 
+                    title="Positivo" 
+                    style="color: #27ae60; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
+                    onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'positive')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </button>
+            <button class="action-flag-btn ${action.negative ? 'active' : ''}" 
+                    title="Negativo" 
+                    style="color: #e74c3c; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
+                    onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'negative')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            ` : `
+            <div class="image-preview-container">
+                ${action.previewUrl ? `
+                    <img src="${action.previewUrl}" class="image-preview-thumb" alt="Preview">
+                    <div class="image-preview-overlay">
+                        <img src="${action.previewUrl}">
+                    </div>
+                ` : `
+                    <div style="color: #3498db; padding: 2px; display: flex; align-items: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    </div>
+                `}
+            </div>
+            `}
+        </div>
+        <div class="action-info">
+            <select class="action-tag action-tag-select" 
+                    style="color: ${action.tag ? action.tag.color : '#7f8c8d'}; border: 1px solid transparent; background: transparent; font-weight: bold; cursor: pointer; padding: 2px; width: 100px; border-radius: 4px; font-size: 0.85em; text-overflow: ellipsis; white-space: nowrap;" 
+                    onchange="window.changeActionTag('${action.id}', this.value)"
+                    onmouseenter="this.style.border='1px solid #ccc'"
+                    onmouseleave="this.style.border='1px solid transparent'">
+                ${state.tags.map(t => `<option value="${t.id}" ${action.tag && t.id === action.tag.id ? 'selected' : ''} style="color: ${t.color}">${t.name}</option>`).join('')}
+            </select>
+            <div class="action-time">
+                ${isImage ? `Durata: <input type="number" step="0.5" min="0.5" value="${action.duration}" style="width: 45px; background: rgba(255,255,255,0.1); border: 1px solid rgba(0,0,0,0.1); color: inherit; padding: 0 2px; border-radius: 3px;" onchange="event.stopPropagation(); window.updateImageDuration('${action.id}', this.value)"> s` 
+                          : `${formatTime(action.startTime)} - ${formatTime(action.endTime)}`}
+            </div>
+        </div>
+        <div class="action-controls-btns">
+            ${!isImage ? `
+            <button class="btn-play" title="Play" onclick="event.stopPropagation(); playAction('${action.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+            ` : ''}
+            <button class="btn-stop" title="Stop" onclick="event.stopPropagation(); stopAction()" style="background: #95a5a6; color: white;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </button>
+            ${!isImage ? `
+            <button class="btn-comment-toggle ${action.comment ? 'has-comment' : ''}" title="Commento" onclick="event.stopPropagation(); window.toggleActionComment('${action.id}')" style="background: #3498db; color: white;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </button>
+            ` : ''}
+            <button class="btn-delete" title="Elimina" onclick="event.stopPropagation(); deleteAction('${action.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+        </div>
+        ${!isImage ? `
+        <div class="action-comment-input" style="display: none;">
+            <input type="text" placeholder="Aggiungi un commento..." 
+                   value="${action.comment || ''}"
+                   onchange="updateActionComment('${action.id}', this.value)">
+        </div>
+        ` : ''}
+    `;
+    
+    // Click per attivare l'azione e controllare gli slider
+    actionItem.addEventListener('click', (e) => {
+        // Ignora click su checkbox, input, button e select
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') {
+            return;
+        }
+        setActiveAction(action);
+    });
+    
+    // Drag and drop per singola azione
+    actionItem.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        actionItem.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', action.id);
+    });
+    
+    actionItem.addEventListener('dragend', (e) => {
+        actionItem.classList.remove('dragging');
+    });
+
+    return actionItem;
+}
+
 function renderActionsGroupedByTag(sortedActions, actionsList) {
     // Raggruppa le azioni per tag mantenendo l'ordine di sortedActions
     const groupedByTag = new Map();
@@ -1297,120 +1373,7 @@ function renderActionsGroupedByTag(sortedActions, actionsList) {
         
         // Aggiungi ogni azione del gruppo
         group.actions.forEach(action => {
-            const actionItem = document.createElement('div');
-            actionItem.className = 'action-item action-in-group';
-            actionItem.draggable = true;
-            actionItem.dataset.actionId = action.id;
-            actionItem.style.borderLeftColor = action.tag.color;
-            
-            if (state.selectedActions.has(action.id)) {
-                actionItem.classList.add('selected-action');
-            }
-            if (state.activeAction && state.activeAction.id === action.id) {
-                actionItem.classList.add('active-action');
-            }
-            
-            const isImage = action.type === 'image';
-            
-            actionItem.innerHTML = `
-                <input type="checkbox" class="action-checkbox" 
-                       ${state.selectedActions.has(action.id) ? 'checked' : ''}
-                       onchange="toggleActionSelection('${action.id}')">
-                <div class="action-flags">
-                    ${!isImage ? `
-                    <button class="action-flag-btn ${action.positive ? 'active' : ''}" 
-                            title="Positivo" 
-                            style="color: #27ae60; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
-                            onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'positive')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </button>
-                    <button class="action-flag-btn ${action.negative ? 'active' : ''}" 
-                            title="Negativo" 
-                            style="color: #e74c3c; background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center;"
-                            onclick="event.stopPropagation(); window.toggleActionFlag('${action.id}', 'negative')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                    ` : `
-                    <div class="image-preview-container">
-                        ${action.previewUrl ? `
-                            <img src="${action.previewUrl}" class="image-preview-thumb" alt="Preview">
-                            <div class="image-preview-overlay">
-                                <img src="${action.previewUrl}">
-                            </div>
-                        ` : `
-                            <div style="color: #3498db; padding: 2px; display: flex; align-items: center;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                            </div>
-                        `}
-                    </div>
-                    `}
-                </div>
-                <div class="action-info">
-                    <select class="action-tag action-tag-select" 
-                            style="color: ${action.tag ? action.tag.color : '#7f8c8d'}; border: 1px solid transparent; background: transparent; font-weight: bold; cursor: pointer; padding: 2px; width: 100px; border-radius: 4px; font-size: 0.85em; text-overflow: ellipsis; white-space: nowrap;" 
-                            onchange="window.changeActionTag('${action.id}', this.value)"
-                            onmouseenter="this.style.border='1px solid #ccc'"
-                            onmouseleave="this.style.border='1px solid transparent'">
-                        ${state.tags.map(t => `<option value="${t.id}" ${action.tag && t.id === action.tag.id ? 'selected' : ''} style="color: ${t.color}">${t.name}</option>`).join('')}
-                    </select>
-                    <div class="action-time">
-                        ${isImage ? `Durata: <input type="number" step="0.5" min="0.5" value="${action.duration}" style="width: 45px; background: rgba(255,255,255,0.1); border: 1px solid rgba(0,0,0,0.1); color: inherit; padding: 0 2px; border-radius: 3px;" onchange="event.stopPropagation(); window.updateImageDuration('${action.id}', this.value)"> s` 
-                                  : `${formatTime(action.startTime)} - ${formatTime(action.endTime)}`}
-                    </div>
-                </div>
-                <div class="action-controls-btns">
-                    ${!isImage ? `
-                    <button class="btn-play" title="Play" onclick="event.stopPropagation(); playAction('${action.id}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    </button>
-                    ` : ''}
-                    <button class="btn-stop" title="Stop" onclick="event.stopPropagation(); stopAction()" style="background: #95a5a6; color: white;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                    </button>
-                    ${!isImage ? `
-                    <button class="btn-comment-toggle ${action.comment ? 'has-comment' : ''}" title="Commento" onclick="event.stopPropagation(); window.toggleActionComment('${action.id}')" style="background: #3498db; color: white;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    </button>
-                    ` : ''}
-                    <button class="btn-delete" title="Elimina" onclick="event.stopPropagation(); deleteAction('${action.id}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                </div>
-                ${!isImage ? `
-                <div class="action-comment-input" style="display: none;">
-                    <input type="text" placeholder="Aggiungi un commento..." 
-                           value="${action.comment || ''}"
-                           onchange="updateActionComment('${action.id}', this.value)">
-                </div>
-                ` : ''}
-            `;
-            
-            // Click per attivare l'azione e controllare gli slider
-            actionItem.addEventListener('click', (e) => {
-                // Ignora click su checkbox, input, button e select
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') {
-                    return;
-                }
-                setActiveAction(action);
-            });
-            
-            // Drag and drop per singola azione
-            actionItem.addEventListener('dragstart', (e) => {
-                e.stopPropagation();
-                actionItem.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', action.id);
-            });
-            
-            actionItem.addEventListener('dragend', (e) => {
-                actionItem.classList.remove('dragging');
-            });
-            
+            const actionItem = createActionItem(action);
             actionsContainer.appendChild(actionItem);
         });
         
@@ -1488,6 +1451,16 @@ function handleActionDragOver(e, container) {
     const draggingAction = document.querySelector('.action-item.dragging');
     if (!draggingAction) return;
     
+    // In modalità gruppi, permettiamo lo spostamento solo se il contenitore è quello di origine
+    if (state.actionsViewMode === 'grouped') {
+        const actionId = draggingAction.dataset.actionId;
+        const action = state.actions.find(a => a.id === actionId);
+        if (action && action.tag.id !== container.parentElement.dataset.tagId) {
+            e.dataTransfer.dropEffect = 'none';
+            return;
+        }
+    }
+    
     const afterElement = getDragAfterElementAction(container, e.clientY);
     
     if (afterElement == null) {
@@ -1500,6 +1473,18 @@ function handleActionDragOver(e, container) {
 function handleActionDrop(e, container) {
     e.preventDefault();
     e.stopPropagation();
+    
+    // In modalità gruppi, verifichiamo che l'azione appartenga a questo gruppo
+    if (state.actionsViewMode === 'grouped') {
+        const draggingAction = document.querySelector('.action-item.dragging');
+        if (draggingAction) {
+            const actionId = draggingAction.dataset.actionId;
+            const action = state.actions.find(a => a.id === actionId);
+            if (action && action.tag.id !== container.parentElement.dataset.tagId) {
+                return; // Annulla il drop se il tag non corrisponde
+            }
+        }
+    }
     
     // Salva il nuovo ordine completo di tutte le azioni
     saveCompleteActionsOrder();
@@ -1528,15 +1513,22 @@ function getDragAfterElementAction(container, y) {
 function saveCompleteActionsOrder() {
     // Raccogli tutte le azioni nell'ordine attuale del DOM
     const actionsList = document.getElementById('actionsList');
-    const allGroups = actionsList.querySelectorAll('.tag-group');
-    
     state.customOrder = [];
-    allGroups.forEach(group => {
-        const actionsInGroup = group.querySelectorAll('.action-item[data-action-id]');
-        actionsInGroup.forEach(item => {
+    
+    if (state.actionsViewMode === 'free') {
+        const allItems = actionsList.querySelectorAll('.action-item[data-action-id]');
+        allItems.forEach(item => {
             state.customOrder.push(item.dataset.actionId);
         });
-    });
+    } else {
+        const allGroups = actionsList.querySelectorAll('.tag-group');
+        allGroups.forEach(group => {
+            const actionsInGroup = group.querySelectorAll('.action-item[data-action-id]');
+            actionsInGroup.forEach(item => {
+                state.customOrder.push(item.dataset.actionId);
+            });
+        });
+    }
     
     saveStateToLocalStorage();
     console.log('Ordine completo salvato:', state.customOrder);
@@ -2272,6 +2264,7 @@ function saveStateToLocalStorage() {
         localStorage.setItem('matchAnalysisActions', JSON.stringify(actionsToSave));
         localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
         localStorage.setItem('matchAnalysisTeamNames', JSON.stringify(state.teamNames));
+        localStorage.setItem('matchAnalysisViewMode', state.actionsViewMode);
     } catch (e) {
         console.error('Errore nel salvataggio azioni:', e);
     }
@@ -2327,6 +2320,11 @@ function loadStateFromLocalStorage() {
         if (savedTeamNames) {
             state.teamNames = JSON.parse(savedTeamNames);
         }
+
+        const savedViewMode = localStorage.getItem('matchAnalysisViewMode');
+        if (savedViewMode) {
+            state.actionsViewMode = savedViewMode;
+        }
     } catch (e) {
         console.error('Errore nel caricamento:', e);
     }
@@ -2344,6 +2342,7 @@ window.stopAction = stopAction;
 window.deleteAction = deleteAction;
 window.toggleTagsPanel = toggleTagsPanel;
 window.toggleActionsPanel = toggleActionsPanel;
+window.toggleViewMode = toggleViewMode;
 window.formatTime = formatTime;
 window.renderTags = renderTags;
 window.renderActions = renderActions;
