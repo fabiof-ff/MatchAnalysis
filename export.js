@@ -517,11 +517,11 @@ async function exportActionsToFFmpeg() {
     const escapeFFmpegText = (text) => {
         if (!text) return '';
         return text
-            .replace(/\\/g, '\\\\')
-            .replace(/:/g, '\\:')
-            .replace(/'/g, "\\'")
-            .replace(/"/g, '') // Rimuove virgolette doppie per evitare conflitti con la shell
-            .replace(/%/g, '%%');
+            .replace(/\\/g, '/')       // Sostituisce backslash con slash per evitare problemi di escape
+            .replace(/:/g, ' - ')      // Sostituisce i due punti con un trattino (causavano errori di parsing in drawtext)
+            .replace(/'/g, "’")        // Sostituisce l'apostrofo con uno curvo (evita la chiusura delle stringhe FFmpeg)
+            .replace(/"/g, '')         // Rimuove le virgolette doppie
+            .replace(/%/g, '%%');      // Raddoppia i percento per compatibilità con i file .bat
     };
 
     // Utility per escape caratteri speciali Windows Batch
@@ -658,17 +658,17 @@ echo.
             // 2. Sovrapponiamo poi il testo reale senza box.
             
             // BOX 1 (Status)
-            vf += `drawtext=text='${safeStatusText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40, `;
-            vf += `drawtext=text='${safeStatusText}':font='Arial':fontsize=20:fontcolor=${statusColor}:x=20:y=h-40, `;
+            vf += `drawtext=text='${safeStatusText}gp':font=Arial:fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40,`;
+            vf += `drawtext=text='${safeStatusText}':font=Arial:fontsize=20:fontcolor=${statusColor}:x=20:y=h-40,`;
             
             // BOX 2 (Main Text)
             // Posizionato a x=85 per lasciare spazio al primo box (~65px) + margine
-            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=85:y=h-40, `;
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=85:y=h-40`;
+            vf += `drawtext=text='${safeMainText}gp':font=Arial:fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=85:y=h-40,`;
+            vf += `drawtext=text='${safeMainText}':font=Arial:fontsize=20:fontcolor=white:x=85:y=h-40`;
         } else {
             // Se non c'è status, solo box principale con altezza standardizzata
-            vf += `drawtext=text='${safeMainText}gp':font='Arial':fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40, `;
-            vf += `drawtext=text='${safeMainText}':font='Arial':fontsize=20:fontcolor=white:x=20:y=h-40`;
+            vf += `drawtext=text='${safeMainText}gp':font=Arial:fontsize=20:fontcolor=white@0:box=1:boxcolor=black@0.7:boxborderw=7:x=20:y=h-40,`;
+            vf += `drawtext=text='${safeMainText}':font=Arial:fontsize=20:fontcolor=white:x=20:y=h-40`;
         }
         
         const fullVf = `scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,setsar=1,${vf}`;
@@ -866,6 +866,17 @@ async function exportActionsToJSON() {
         const json = JSON.stringify(data, null, 2);
         const fileNameJson = `match_analysis_${Date.now()}.json`;
         await saveFileInVideoFolder(json, fileNameJson, 'Match Analysis JSON');
+        console.log('Export JSON completato con successo');
+    } catch (error) {
+        console.error('Errore in exportActionsToJSON:', error);
+        alert('Errore durante l\'esportazione delle azioni: ' + error.message);
+    }
+}
+
+async function exportActionsToTXT() {
+    try {
+        console.log('Inizio exportActionsToTXT');
+        if (!state) throw new Error('Stato dell\'applicazione non trovato');
 
         // Helper per convertire mm:ss in secondi
         const timeToSeconds = (timeStr) => {
@@ -884,9 +895,9 @@ async function exportActionsToJSON() {
         const start2 = timeToSeconds(val2);
         
         let txtContent = "Timer\tFrazione\tTag_Name\tTeam\tCommento\n";
-        // Ordiniamo le azioni per tempo di inizio per il file di testo, solo quelle selezionate
+        // Ordiniamo tutte le azioni per tempo di inizio per il file di testo
         const sortedActionsForTxt = state.actions
-            .filter(a => state.selectedActions.has(a.id))
+            .slice()
             .sort((a, b) => a.startTime - b.startTime);
         
         sortedActionsForTxt.forEach(action => {
@@ -917,13 +928,13 @@ async function exportActionsToJSON() {
         });
 
         if (txtContent) {
-            const fileNameTxt = `match_analysis_${Date.now()}.txt`;
+            const fileNameTxt = `match_analysis_list_${Date.now()}.txt`;
             await saveFileInVideoFolder(txtContent, fileNameTxt, 'Elenco Azioni TXT');
         }
-        console.log('Export completato con successo');
+        console.log('Export TXT completato con successo');
     } catch (error) {
-        console.error('Errore in exportActionsToJSON:', error);
-        alert('Errore durante l\'esportazione delle azioni: ' + error.message);
+        console.error('Errore in exportActionsToTXT:', error);
+        alert('Errore durante l\'esportazione TXT: ' + error.message);
     }
 }
 
