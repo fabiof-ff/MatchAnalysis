@@ -2366,6 +2366,7 @@ window.stopPreview = stopPreview;
 window.loadVideoWithPicker = loadVideoWithPicker;
 window.addNewTag = addNewTag;
 window.updateVideoTime = updateVideoTime;
+window.clearAllActions = clearAllActions;
 window.updateDuration = updateDuration;
 window.updateSliderDisplay = updateSliderDisplay;
 window.updateSliderTrack = updateSliderTrack;
@@ -2902,6 +2903,22 @@ function deleteActionFromLive(actionId) {
         saveStateToLocalStorage();
         renderActions();
         renderLiveActions();
+    }
+}
+
+function clearAllActions() {
+    if (confirm('ATTENZIONE: Sei sicuro di voler eliminare TUTTE le azioni registrate?\nQuesta operazione non è annullabile.')) {
+        state.actions = [];
+        state.selectedActions.clear();
+        state.customOrder = [];
+        state.score = { A: 0, B: 0 }; // Resetta anche il punteggio per coerenza
+        
+        saveStateToLocalStorage();
+        renderActions();
+        renderLiveActions();
+        updateScoreUI();
+        
+        showNotification('🗑️ Tutte le azioni sono state eliminate', 'info');
     }
 }
 
