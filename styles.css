@@ -1942,11 +1942,28 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
 }
 
 .live-action-name {
     font-weight: 700;
     color: #2c3e50;
+}
+
+.live-action-comment {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 0.8em;
+    width: 90%;
+    margin-top: 4px;
+    outline: none;
+    background: #fdfdfd;
+}
+
+.live-action-comment:focus {
+    border-color: #3498db;
+    background: white;
 }
 
 .live-action-time {

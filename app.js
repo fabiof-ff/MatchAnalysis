@@ -18,7 +18,10 @@ const state = {
     activeAction: null, // Azione attualmente controllata dallo slider
     collapsedGroups: new Set(), // Tag ID dei gruppi collassati nel pannello azioni
     actionsViewMode: 'grouped', // 'grouped' o 'free'
-    teamNames: { A: 'SQUADRA A', B: 'SQUADRA B' }, // Nomi squadre modificabili
+    analysisTeamNames: { A: 'SQUADRA A', B: 'SQUADRA B' }, // Nomi squadre Analisi
+    liveTeamNames: { A: 'SQUADRA A', B: 'SQUADRA B' },     // Nomi squadre Live
+    analysisTeamColors: { A: '#3498db', B: '#f39c12' },   // Colori squadre Analisi
+    liveTeamColors: { A: '#3498db', B: '#f39c12' },       // Colori squadre Live
     score: { A: 0, B: 0 }, // Punteggio live (usato solo in Live Tagging)
     
     // Live Tagging State
@@ -601,15 +604,12 @@ function renderTags() {
     const teamColorPickerA = document.getElementById('teamColorPickerA');
     const teamColorPickerB = document.getElementById('teamColorPickerB');
     
-    // Aggiorna i nomi e colori delle squadre nell'UI se gli input esistono
-    if (teamNameAInput && state.teamNames) teamNameAInput.value = state.teamNames.A || 'SQUADRA A';
-    if (teamNameBInput && state.teamNames) teamNameBInput.value = state.teamNames.B || 'SQUADRA B';
+    // Aggiorna i nomi e colori delle squadre nell'UI Analisi
+    if (teamNameAInput && state.analysisTeamNames) teamNameAInput.value = state.analysisTeamNames.A || 'SQUADRA A';
+    if (teamNameBInput && state.analysisTeamNames) teamNameBInput.value = state.analysisTeamNames.B || 'SQUADRA B';
     
-    // Sincronizza i color picker con il primo tag di ogni squadra
-    const firstTagA = state.tags.find(t => t.team === 'A');
-    if (firstTagA && teamColorPickerA) teamColorPickerA.value = firstTagA.color;
-    const firstTagB = state.tags.find(t => t.team === 'B');
-    if (firstTagB && teamColorPickerB) teamColorPickerB.value = firstTagB.color;
+    if (teamColorPickerA && state.analysisTeamColors) teamColorPickerA.value = state.analysisTeamColors.A;
+    if (teamColorPickerB && state.analysisTeamColors) teamColorPickerB.value = state.analysisTeamColors.B;
     
     console.log('===== renderTags CHIAMATA =====');
     
@@ -637,7 +637,13 @@ function renderTags() {
         if (state.selectedTag && state.selectedTag.id === tag.id) {
             tagItem.classList.add('selected');
         }
-        tagItem.style.backgroundColor = tag.color;
+        
+        // Uso il colore specifico del team se presente, altrimenti il colore del tag
+        let displayColor = tag.color;
+        if (tag.team === 'A') displayColor = state.analysisTeamColors.A;
+        if (tag.team === 'B') displayColor = state.analysisTeamColors.B;
+        
+        tagItem.style.backgroundColor = displayColor;
         
         const deleteBtn = `<button class="delete-tag" onclick="deleteTag('${tag.id}')">×</button>`;
         
@@ -2259,11 +2265,22 @@ function loadActionsFromLocalStorage() {
             console.log('Ordine personalizzato caricato:', state.customOrder.length);
         }
 
-        // Carica nomi squadre
+        // Carica nomi squadre e colori
         const savedTeamNames = localStorage.getItem('matchAnalysisTeamNames');
         if (savedTeamNames) {
-            state.teamNames = JSON.parse(savedTeamNames);
-            console.log('Nomi squadre caricati:', state.teamNames);
+            state.analysisTeamNames = JSON.parse(savedTeamNames);
+        }
+        const savedLiveTeamNames = localStorage.getItem('matchAnalysisLiveTeamNames');
+        if (savedLiveTeamNames) {
+            state.liveTeamNames = JSON.parse(savedLiveTeamNames);
+        }
+        const savedTeamColors = localStorage.getItem('matchAnalysisTeamColors');
+        if (savedTeamColors) {
+            state.analysisTeamColors = JSON.parse(savedTeamColors);
+        }
+        const savedLiveTeamColors = localStorage.getItem('matchAnalysisLiveTeamColors');
+        if (savedLiveTeamColors) {
+            state.liveTeamColors = JSON.parse(savedLiveTeamColors);
         }
     } catch (e) {
         console.error('Errore nel caricamento azioni:', e);
@@ -2281,7 +2298,10 @@ function saveStateToLocalStorage() {
         localStorage.setItem('matchAnalysisActions', JSON.stringify(analysisActionsToSave));
         localStorage.setItem('matchAnalysisLiveActions', JSON.stringify(state.liveActions));
         localStorage.setItem('matchAnalysisCustomOrder', JSON.stringify(state.customOrder));
-        localStorage.setItem('matchAnalysisTeamNames', JSON.stringify(state.teamNames));
+        localStorage.setItem('matchAnalysisTeamNames', JSON.stringify(state.analysisTeamNames));
+        localStorage.setItem('matchAnalysisLiveTeamNames', JSON.stringify(state.liveTeamNames));
+        localStorage.setItem('matchAnalysisTeamColors', JSON.stringify(state.analysisTeamColors));
+        localStorage.setItem('matchAnalysisLiveTeamColors', JSON.stringify(state.liveTeamColors));
         localStorage.setItem('matchAnalysisViewMode', state.actionsViewMode);
         localStorage.setItem('matchAnalysisScore', JSON.stringify(state.score));
     } catch (e) {
@@ -2289,70 +2309,44 @@ function saveStateToLocalStorage() {
     }
 }
 
-function updateTeamName(team, name) {
-    if (state.teamNames) {
-        state.teamNames[team] = name;
-        saveStateToLocalStorage();
-        console.log(`Nome squadra ${team} aggiornato: ${name}`);
+function updateTeamName(team, name, context) {
+    // Se non specificato, proviamo a capire dalla tab attiva
+    if (!context) {
+        context = document.querySelector('.tab-btn.active').dataset.tab === 'live' ? 'live' : 'analysis';
+    }
+
+    if (context === 'analysis') {
+        state.analysisTeamNames[team] = name;
+        console.log(`Nome squadra ${team} (Analisi) aggiornato: ${name}`);
         
-        // 1. Aggiorna gli input nella tab Analisi Video
+        // Sincronizza solo gli input in Analisi
         const analysisInput = document.getElementById(`teamName${team}`);
         if (analysisInput && analysisInput.value !== name) {
             analysisInput.value = name;
         }
-
-        // 2. Aggiorna gli input nella tab Live Tagging
+        renderActions();
+    } else {
+        state.liveTeamNames[team] = name;
+        console.log(`Nome squadra ${team} (Live) aggiornato: ${name}`);
+        
+        // Sincronizza solo gli input in Live
         const liveInputs = document.querySelectorAll(`.live-team-input[data-team="${team}"]`);
         liveInputs.forEach(input => {
             if (input.value !== name) {
                 input.value = name;
             }
         });
-
-        // 3. Aggiorna eventuali titoli o etichette che usano il nome squadra
-        // Eseguiamo un render parziale o totale se necessario
-        renderLiveActions(); 
-        renderActions();
+        renderLiveActions();
     }
-}
 
-function loadStateFromLocalStorage() {
-    try {
-        const saved = localStorage.getItem('matchAnalysisState');
-        if (saved) {
-            const data = JSON.parse(saved);
-            // Carica solo i tag custom, i default verranno aggiunti dopo
-            if (data.tags && data.tags.length > 0) {
-                state.tags = data.tags.filter(t => !t.isDefault); // Solo tag custom
-            }
-            if (data.actions) state.actions = data.actions;
-            
-            // Carica nomi squadre e punteggio
-            if (data.teamNames) state.teamNames = data.teamNames;
-            if (data.score) state.score = data.score;
-            
-            console.log('Stato caricato da localStorage - Tags custom:', state.tags.length);
-        }
-        
-        // Carica nomi squadre dal nuovo sistema di salvataggio
-        const savedTeamNames = localStorage.getItem('matchAnalysisTeamNames');
-        if (savedTeamNames) {
-            state.teamNames = JSON.parse(savedTeamNames);
-        }
-
-        const savedViewMode = localStorage.getItem('matchAnalysisViewMode');
-        if (savedViewMode) {
-            state.actionsViewMode = savedViewMode;
-        }
-    } catch (e) {
-        console.error('Errore nel caricamento:', e);
-    }
+    saveStateToLocalStorage();
 }
 
 // Export functions to global scope for inline event handlers and inter-file communication
 window.deleteTag = deleteTag;
 window.toggleTagSettings = toggleTagSettings;
 window.updateTeamName = updateTeamName;
+window.updateLiveActionComment = updateLiveActionComment;
 window.toggleActionSelection = toggleActionSelection;
 window.updateActionTime = updateActionTime;
 window.updateActionComment = updateActionComment;
@@ -2664,17 +2658,15 @@ function renderLiveTags() {
         B: document.getElementById('liveTagListB')
     };
     
-    // Aggiorna gli input dei nomi e i selettori colore
+    // Aggiorna gli input dei nomi e i selettori colore (Live)
     document.querySelectorAll('.live-team-input').forEach(input => {
         const team = input.dataset.team;
-        if (state.teamNames[team]) input.value = state.teamNames[team];
+        if (state.liveTeamNames[team]) input.value = state.liveTeamNames[team];
     });
 
     document.querySelectorAll('.live-team-color').forEach(input => {
         const team = input.dataset.team;
-        // Prendi il colore del primo tag di quella squadra se disponibile
-        const teamTag = state.tags.find(t => t.team === team);
-        if (teamTag) input.value = teamTag.color;
+        if (state.liveTeamColors[team]) input.value = state.liveTeamColors[team];
     });
 
     // Pulisci liste
@@ -2691,7 +2683,12 @@ function renderLiveTags() {
         btn.className = 'live-tag-btn';
         
         // APPLICAZIONE COLORE FORZATA - Usa background per sovrascrivere il gradiente di default dei button
-        const tagCol = tag.color || (tag.phase === 'offensiva' ? '#27ae60' : '#3498db');
+        let tagCol = tag.color || (tag.phase === 'offensiva' ? '#27ae60' : '#3498db');
+        
+        // Colore specifico per team (Live)
+        if (tag.team === 'A') tagCol = state.liveTeamColors.A;
+        if (tag.team === 'B') tagCol = state.liveTeamColors.B;
+        
         btn.style.background = tagCol;
         btn.style.backgroundColor = tagCol; 
         
@@ -2783,7 +2780,7 @@ function reduceLiveGol(team) {
         updateScoreUI();
         saveStateToLocalStorage();
         renderLiveActions();
-        showNotification(`Gol rimosso per ${state.teamNames[team]}`, 'info');
+        showNotification(`Gol rimosso per ${state.liveTeamNames[team]}`, 'info');
     }
 }
 
@@ -2900,8 +2897,14 @@ function renderLiveActions() {
         return `
             <div class="live-action-item" style="border-left-color: ${a.tag.color}">
                 <div class="live-action-content">
-                    <span class="live-action-name">${a.tag.name}</span>
-                    <span class="live-action-time">${timeStr}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="live-action-name">${a.tag.name}</span>
+                        <span class="live-action-time">${timeStr}</span>
+                    </div>
+                    <input type="text" class="live-action-comment" 
+                           placeholder="Aggiungi commento..." 
+                           value="${a.comment || ''}" 
+                           onchange="updateLiveActionComment('${a.id}', this.value)">
                 </div>
                 <button class="live-action-delete" onclick="deleteActionFromLive('${a.id}')" title="Elimina">×</button>
             </div>
@@ -2914,6 +2917,15 @@ function deleteActionFromLive(actionId) {
         state.liveActions = state.liveActions.filter(a => a.id !== actionId);
         saveStateToLocalStorage();
         renderLiveActions();
+    }
+}
+
+function updateLiveActionComment(actionId, comment) {
+    const action = state.liveActions.find(a => a.id === actionId);
+    if (action) {
+        action.comment = comment;
+        saveStateToLocalStorage();
+        console.log(`Commento azione live ${actionId} aggiornato`);
     }
 }
 
@@ -2938,45 +2950,37 @@ function modifyLiveTimer(seconds) {
     updateLiveTimerDisplay();
 }
 
-function updateLiveTeamColor(team, color) {
-    console.log(`Aggiornamento colore team ${team} a: ${color}`);
+function updateLiveTeamColor(team, color, context) {
+    if (!context) {
+        context = document.querySelector('.tab-btn.active').dataset.tab === 'live' ? 'live' : 'analysis';
+    }
     
-    // Sincronizza i selettori colore in Analisi Video e Live Tagging
-    const pickers = document.querySelectorAll(`#teamColorPicker${team}, .live-team-color[data-team="${team}"]`);
-    pickers.forEach(p => {
-        if (p.value !== color) p.value = color;
-    });
-
-    // Aggiorna il colore nello stato per tutti i tag di quella squadra
-    state.tags.forEach(tag => {
-        if (tag.team === team) {
-            tag.color = color;
-        }
-    });
+    console.log(`Aggiornamento colore team ${team} (${context}) a: ${color}`);
+    
+    if (context === 'analysis') {
+        state.analysisTeamColors[team] = color;
+        // Aggiorna anche le azioni esistenti in Analisi per coerenza visiva
+        state.analysisActions.forEach(action => {
+            if (action.tag && action.tag.team === team) {
+                action.tag.color = color;
+            }
+        });
+    } else {
+        state.liveTeamColors[team] = color;
+        // Aggiorna anche le azioni esistenti in Live
+        state.liveActions.forEach(action => {
+            if (action.tag && action.tag.team === team) {
+                action.tag.color = color;
+            }
+        });
+    }
 
     // Salva e renderizza ovunque
-    saveTagsToLocalStorage();
+    saveStateToLocalStorage();
     renderTags();
     renderLiveTags();
-    
-    // Aggiorna anche le azioni esistenti per coerenza visiva
-    state.analysisActions.forEach(action => {
-        if (action.tag && action.tag.team === team) {
-            action.tag.color = color;
-        }
-    });
-    state.liveActions.forEach(action => {
-        if (action.tag && action.tag.team === team) {
-            action.tag.color = color;
-        }
-    });
     renderActions();
     renderLiveActions();
-    
-    // Forza il valore del picker nel caso sia stato chiamato via codice
-    document.querySelectorAll(`.live-team-color[data-team="${team}"]`).forEach(input => {
-        input.value = color;
-    });
 }
 
 function updateLivePhaseColor(phase, color) {

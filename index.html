@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <div class="header-bar">
-            <h1>⚽ Match Analysis - Analisi Video</h1>
+            <h1>Match Analysis</h1>
             <div class="tabs-navigation">
                 <button class="tab-btn active" data-tab="analysis">📊 Analisi Video</button>
                 <button class="tab-btn" data-tab="live">🔴 Live Tagging</button>
@@ -66,12 +66,12 @@
                 <div class="tag-panel" style="padding: 10px; border-top: 2px solid #ddd; flex: 1; display: flex; flex-direction: column; min-height: 0;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 0.8em; color: #7f8c8d;">
                         <div style="display: flex; gap: 4px; align-items: center;">
-                            <input type="text" id="teamNameA" value="SQUADRA A" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1em; width: 0; flex: 1; outline: none; border-radius: 4px; padding: 2px;" oninput="updateTeamName('A', this.value)">
-                            <input type="color" id="teamColorPickerA" title="Colore Squadra A" style="width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0;" oninput="updateLiveTeamColor('A', this.value)">
+                            <input type="text" id="teamNameA" value="SQUADRA A" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1em; width: 0; flex: 1; outline: none; border-radius: 4px; padding: 2px;" oninput="updateTeamName('A', this.value, 'analysis')">
+                            <input type="color" id="teamColorPickerA" title="Colore Squadra A" style="width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0;" oninput="updateLiveTeamColor('A', this.value, 'analysis')">
                         </div>
                         <div style="display: flex; gap: 4px; align-items: center;">
-                            <input type="text" id="teamNameB" value="SQUADRA B" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1em; width: 0; flex: 1; outline: none; border-radius: 4px; padding: 2px;" oninput="updateTeamName('B', this.value)">
-                            <input type="color" id="teamColorPickerB" title="Colore Squadra B" style="width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0;" oninput="updateLiveTeamColor('B', this.value)">
+                            <input type="text" id="teamNameB" value="SQUADRA B" style="border: none; background: #f0f0f0; text-align: center; font-weight: bold; color: #2c3e50; font-size: 1em; width: 0; flex: 1; outline: none; border-radius: 4px; padding: 2px;" oninput="updateTeamName('B', this.value, 'analysis')">
+                            <input type="color" id="teamColorPickerB" title="Colore Squadra B" style="width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0;" oninput="updateLiveTeamColor('B', this.value, 'analysis')">
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; overflow-y: auto; align-content: start;">
@@ -292,15 +292,15 @@
                     <div class="live-teams-row">
                         <div class="live-tag-column">
                             <div class="live-column-header">
-                                <input type="text" class="live-team-input" value="SQUADRA A" oninput="updateTeamName('A', this.value)" data-team="A">
-                                <input type="color" class="live-team-color" oninput="updateLiveTeamColor('A', this.value)" data-team="A" title="Colore Squadra A">
+                                <input type="text" class="live-team-input" value="SQUADRA A" oninput="updateTeamName('A', this.value, 'live')" data-team="A">
+                                <input type="color" class="live-team-color" oninput="updateLiveTeamColor('A', this.value, 'live')" data-team="A" title="Colore Squadra A">
                             </div>
                             <div id="liveTagListA" class="live-tag-list"></div>
                         </div>
                         <div class="live-tag-column">
                             <div class="live-column-header">
-                                <input type="text" class="live-team-input" value="SQUADRA B" oninput="updateTeamName('B', this.value)" data-team="B">
-                                <input type="color" class="live-team-color" oninput="updateLiveTeamColor('B', this.value)" data-team="B" title="Colore Squadra B">
+                                <input type="text" class="live-team-input" value="SQUADRA B" oninput="updateTeamName('B', this.value, 'live')" data-team="B">
+                                <input type="color" class="live-team-color" oninput="updateLiveTeamColor('B', this.value, 'live')" data-team="B" title="Colore Squadra B">
                             </div>
                             <div id="liveTagListB" class="live-tag-list"></div>
                         </div>

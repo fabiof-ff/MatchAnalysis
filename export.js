@@ -616,8 +616,8 @@ echo.
         
         // Nome Tag + Nome Squadra (se presente)
         let teamSuffix = "";
-        if (action.tag.team && state.teamNames) {
-            const teamName = state.teamNames[action.tag.team];
+        if (action.tag.team && state.analysisTeamNames) {
+            const teamName = state.analysisTeamNames[action.tag.team];
             if (teamName) {
                 teamSuffix = ` | ${teamName.toUpperCase()}`;
             }
@@ -783,8 +783,8 @@ echo.
             ffmpegScript += `echo   ${i+1}. [IMMAGINE] ${fileNameSafe} (${action.duration}s)\n`;
         } else {
             let teamSuffix = "";
-            if (action.tag && action.tag.team && state.teamNames) {
-                const tName = state.teamNames[action.tag.team];
+            if (action.tag && action.tag.team && state.analysisTeamNames) {
+                const tName = state.analysisTeamNames[action.tag.team];
                 if (tName) teamSuffix = ` | ${tName.toUpperCase()}`;
             }
             const displayTagName = escapeBatch((action.tag ? action.tag.name.toUpperCase() : "TAG") + teamSuffix);
@@ -856,7 +856,7 @@ async function exportActionsToJSON(source = 'analysis') {
             exportDate: new Date().toISOString(),
             exportSource: source,
             videoName: state.currentVideo ? state.currentVideo.name : null,
-            teamNames: state.teamNames,
+            teamNames: source === 'live' ? state.liveTeamNames : state.analysisTeamNames,
             score: state.score
         };
 
@@ -927,8 +927,8 @@ async function exportActionsToTXT() {
             const timerDecimale = (matchTimeSeconds / 60).toFixed(1);
             
             const tagName = action.tag ? action.tag.name : "";
-            const teamName = (action.tag && action.tag.team && state.teamNames && state.teamNames[action.tag.team]) 
-                ? state.teamNames[action.tag.team] 
+            const teamName = (action.tag && action.tag.team && state.analysisTeamNames && state.analysisTeamNames[action.tag.team]) 
+                ? state.analysisTeamNames[action.tag.team] 
                 : "";
             const comment = action.comment || "";
             
@@ -959,7 +959,12 @@ function importActionsFromJSON(file) {
             // Fallback per compatibilità con file vecchi o esportazioni singole
             if (!analysisActions && !liveActions) {
                 if (data.exportSource === 'live') {
-                    liveActions = data.actions;
+                    // Chiedi all'utente se importarli come Analisi o Live
+                    if (confirm("Questo file contiene azioni di Live Tagging. Vuoi importarle come azioni di Analisi Video?\n(Annulla per importarle come Live Tagging)")) {
+                        analysisActions = data.actions;
+                    } else {
+                        liveActions = data.actions;
+                    }
                 } else {
                     // Se non specificato o 'analysis', o formato vecchio
                     analysisActions = Array.isArray(data) ? data : data.actions;
@@ -986,7 +991,14 @@ function importActionsFromJSON(file) {
                 
                 // Se il JSON contiene i nomi squadre, importali
                 if (data.teamNames) {
-                    state.teamNames = data.teamNames;
+                    // Se abbiamo importato azioni in analisi, aggiorniamo i nomi team di analisi
+                    if (analysisActions) {
+                        state.analysisTeamNames = data.teamNames;
+                    } 
+                    // Se abbiamo importato azioni live, aggiorniamo i nomi team live
+                    if (liveActions) {
+                        state.liveTeamNames = data.teamNames;
+                    }
                     if (typeof renderTags === 'function') renderTags();
                 }
                 
@@ -1015,7 +1027,8 @@ async function exportTagsToJSON() {
 
         const data = {
             exportDate: new Date().toISOString(),
-            teamNames: state.teamNames,
+            analysisTeamNames: state.analysisTeamNames,
+            liveTeamNames: state.liveTeamNames,
             tags: state.tags
         };
         
@@ -1044,8 +1057,15 @@ function importTagsFromJSON(file) {
                 state.tags = tags;
                 
                 // Se il JSON contiene i nomi squadre, importali
-                if (data.teamNames) {
-                    state.teamNames = data.teamNames;
+                if (data.analysisTeamNames) {
+                    state.analysisTeamNames = data.analysisTeamNames;
+                }
+                if (data.liveTeamNames) {
+                    state.liveTeamNames = data.liveTeamNames;
+                }
+                // Fallback per vecchi formati
+                if (data.teamNames && !data.analysisTeamNames) {
+                    state.analysisTeamNames = data.teamNames;
                 }
                 
                 renderTags();
