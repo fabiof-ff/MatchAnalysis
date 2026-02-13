@@ -169,11 +169,30 @@ function removeMergeVideo(index) {
 
 // State for compress video
 const compressState = {
-    videoToCompress: null
+    videoToCompress: null,
+    duration: null,
+    originalWidth: null,
+    originalHeight: null
 };
 
 function selectCompressVideo(file) {
     compressState.videoToCompress = file;
+    compressState.duration = null;
+    compressState.originalWidth = null;
+    compressState.originalHeight = null;
+    
+    // Ottieni metadati (durata e risoluzione)
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = function() {
+        window.URL.revokeObjectURL(video.src);
+        compressState.duration = video.duration;
+        compressState.originalWidth = video.videoWidth;
+        compressState.originalHeight = video.videoHeight;
+        renderCompressVideoInfo();
+    };
+    video.src = URL.createObjectURL(file);
+
     renderCompressVideoInfo();
     showNotification(`✅ Video selezionato: ${file.name}`, 'success');
 }
@@ -187,43 +206,88 @@ function renderCompressVideoInfo() {
     
     const sizeMB = (compressState.videoToCompress.size / (1024 * 1024)).toFixed(2);
     
-    // Calculate estimated size based on quality and resolution
+    // Calcolo bitrate originale e stima
+    let originalVideoInfoHTML = '';
+    let estimatedSizeMB = sizeMB;
+    let reductionPercent = 0;
     const quality = document.getElementById('compressionQuality').value;
     const resolution = document.getElementById('compressionResolution').value;
     
-    // Compression factors (approximate)
-    const qualityFactors = {
-        'high': 0.6,    // 60% of original
-        'medium': 0.4,  // 40% of original
-        'low': 0.25     // 25% of original
+    // Target bitrates indicativi per la UI (riferiti a 1080p)
+    const targetBitrates = {
+        'high': 8.0,
+        'medium': 4.5,
+        'low': 2.2,
+        'verylow': 1.2
     };
+    const baseTargetBitrate = targetBitrates[quality];
+
+    if (compressState.duration) {
+        const origBitrate = (compressState.videoToCompress.size * 8) / (compressState.duration * 1000000);
+        const resolutionText = compressState.originalWidth ? `${compressState.originalWidth}x${compressState.originalHeight}` : '...';
+        
+        originalVideoInfoHTML = `
+            <p style="color: #27ae60; font-size: 0.85em; margin-top: 5px; font-weight: 600;">⚡ Bitrate: ${origBitrate.toFixed(1)} Mbps</p>
+            <p style="color: #2980b9; font-size: 0.85em; margin-top: 2px; font-weight: 600;">🖥️ Risoluzione: ${resolutionText}</p>
+        `;
+
+        // Fattore di scala risoluzione
+        let resFactor = 1.0;
+        if (resolution === '1080') resFactor = 1.0;
+        else if (resolution === '720') resFactor = 0.5;
+        else if (resolution === '480') resFactor = 0.25;
+        else if (resolution === 'original' && compressState.originalHeight) {
+            // Se originale è > 1080, consideriamo che CRF 23 peserà di più
+            resFactor = Math.max(0.3, (compressState.originalHeight * compressState.originalWidth) / (1920 * 1080));
+        }
+
+        const scaledTargetBitrate = baseTargetBitrate * resFactor;
+        
+        // Se il bitrate target è superiore all'originale, il file non si riduce (o aumenta leggermente)
+        // Ma FFmpeg con CRF solitamente non "gonfia" il file, quindi max ratio = 1.0
+        const compressionRatio = Math.min(1.0, scaledTargetBitrate / origBitrate);
+        
+        estimatedSizeMB = (sizeMB * compressionRatio).toFixed(2);
+        reductionPercent = ((1 - compressionRatio) * 100).toFixed(0);
+    } else {
+        originalVideoInfoHTML = `<p style="color: #7f8c8d; font-size: 0.85em; margin-top: 5px; font-style: italic;">Calcolo info in corso...</p>`;
+    }
+
+    // Calcolo Risoluzione Target
+    let targetResText = 'Originale';
+    if (resolution !== 'original' && compressState.originalWidth && compressState.originalHeight) {
+        const ratio = compressState.originalWidth / compressState.originalHeight;
+        const targetHeight = parseInt(resolution);
+        const targetWidth = Math.round(targetHeight * ratio);
+        targetResText = `${targetWidth}x${targetHeight}`;
+    } else if (resolution === 'original' && compressState.originalWidth) {
+        targetResText = `${compressState.originalWidth}x${compressState.originalHeight} (No resize)`;
+    }
     
-    const resolutionFactors = {
-        'original': 1,
-        '1080': 0.7,
-        '720': 0.5,
-        '480': 0.3
-    };
-    
-    const compressionFactor = qualityFactors[quality] * resolutionFactors[resolution];
-    const estimatedSizeMB = (sizeMB * compressionFactor).toFixed(2);
-    const reductionPercent = ((1 - compressionFactor) * 100).toFixed(0);
-    
+    const targetBitrateDisplay = compressState.duration ? (baseTargetBitrate * (resolution === 'original' ? 1 : (parseInt(resolution)/1080))).toFixed(1) : baseTargetBitrate;
+
     info.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
             <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60;">
-                <p style="color: #7f8c8d; font-size: 0.85em; margin-bottom: 5px;">DIMENSIONE ORIGINALE</p>
+                <p style="color: #7f8c8d; font-size: 0.85em; margin-bottom: 5px;">INFO ORIGINALE</p>
                 <p style="color: #2c3e50; font-weight: 700; font-size: 1.3em;">${sizeMB} MB</p>
-                <p style="color: #7f8c8d; font-size: 0.85em; margin-top: 5px;">📹 ${compressState.videoToCompress.name}</p>
+                ${originalVideoInfoHTML}
+                <p style="color: #7f8c8d; font-size: 0.75em; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📹 ${compressState.videoToCompress.name}</p>
             </div>
             <div style="background: #fff3e0; padding: 15px; border-radius: 8px; border-left: 4px solid #f39c12;">
-                <p style="color: #7f8c8d; font-size: 0.85em; margin-bottom: 5px;">DIMENSIONE STIMATA</p>
+                <p style="color: #7f8c8d; font-size: 0.85em; margin-bottom: 5px;">STIMA TARGET</p>
                 <p style="color: #f39c12; font-weight: 700; font-size: 1.3em;">~${estimatedSizeMB} MB</p>
+                <p style="color: #d35400; font-size: 0.85em; margin-top: 5px; font-weight: 600;">🎯 Target: ~${targetBitrateDisplay} Mbps</p>
+                <p style="color: #2980b9; font-size: 0.85em; margin-top: 2px; font-weight: 600;">🖥️ Res: ${targetResText}</p>
                 <p style="color: #27ae60; font-size: 0.85em; margin-top: 5px; font-weight: 600;">📉 Riduzione: ~${reductionPercent}%</p>
             </div>
         </div>
+        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.8em; color: #7f8c8d;">
+            <strong>ℹ️ Riferimenti Bitrate (Target CRF):</strong><br>
+            • CRF 20 (Alta): ~8-12 Mbps | • CRF 23 (Media): ~4-6 Mbps | • CRF 28 (Bassa): ~1.5-2.5 Mbps | • CRF 32 (Molto Bassa): ~0.8-1.5 Mbps
+        </div>
         <p style="color: #95a5a6; font-size: 0.8em; margin-top: 10px; font-style: italic;">
-            ⚠️ La dimensione finale effettiva può variare in base al contenuto del video
+            ⚠️ La dimensione finale effettiva può variare in base al contenuto e alla risoluzione del video
         </p>
     `;
 }
@@ -243,7 +307,8 @@ async function exportCompressScript() {
     const crfValues = {
         'high': 20,
         'medium': 23,
-        'low': 28
+        'low': 28,
+        'verylow': 32
     };
     
     const crf = crfValues[quality];
