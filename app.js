@@ -610,33 +610,11 @@ async function loadVideoWithPicker() {
                 multiple: false
             });
             
-            // Ottieni il file dal handle
             const file = await fileHandle.getFile();
-            
-            const videoPlayer = document.getElementById('videoPlayer');
-            const youtubeContainer = document.getElementById('youtubePlayer');
-            const url = URL.createObjectURL(file);
-            
-            state.isYoutube = false;
-            videoPlayer.style.display = 'block';
-            youtubeContainer.style.display = 'none';
-            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
-            
-            videoPlayer.src = url;
-            state.currentVideo = {
-                name: file.name,
-                url: url,
-                file: file,
-                fileHandle: fileHandle
-            };
-            
-            videoPlayer.load();
-            console.log('Video caricato:', file.name);
-            showNotification('✅ Video caricato!', 'success');
-            
+            handleVideoFile(file, fileHandle);
         } else {
-            // Fallback: usa il metodo tradizionale con alert
-            alert('Il tuo browser non supporta la selezione file avanzata.\nUsa Chrome o Edge per una migliore esperienza.');
+            // Fallback per iOS/Safari e altri browser che non supportano showOpenFilePicker
+            document.getElementById('videoInputFallback').click();
         }
     } catch (err) {
         if (err.name === 'AbortError') {
@@ -647,6 +625,45 @@ async function loadVideoWithPicker() {
         }
     }
 }
+
+// Funzione centralizzata per gestire il file video selezionato
+function handleVideoFile(file, fileHandle = null) {
+    if (!file) return;
+
+    const videoPlayer = document.getElementById('videoPlayer');
+    const youtubeContainer = document.getElementById('youtubePlayer');
+    const url = URL.createObjectURL(file);
+    
+    state.isYoutube = false;
+    videoPlayer.style.display = 'block';
+    youtubeContainer.style.display = 'none';
+    if (ytPlayer && ytPlayer.pauseVideo) try { ytPlayer.pauseVideo(); } catch(e) {}
+    
+    videoPlayer.src = url;
+    state.currentVideo = {
+        name: file.name,
+        url: url,
+        file: file,
+        fileHandle: fileHandle
+    };
+    
+    videoPlayer.load();
+    console.log('Video caricato:', file.name);
+    showNotification('✅ Video caricato!', 'success');
+}
+
+// Listener per il fallback input (iOS/Safari)
+document.addEventListener('DOMContentLoaded', () => {
+    const fallbackInput = document.getElementById('videoInputFallback');
+    if (fallbackInput) {
+        fallbackInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleVideoFile(file);
+            }
+        });
+    }
+});
 
 async function loadVideoFromUrl() {
     const url = prompt("Inserisci l'URL del video (es. https://www.youtube.com/watch?v=.... o link diretto .mp4):");
