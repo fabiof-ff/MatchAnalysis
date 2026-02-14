@@ -498,6 +498,10 @@ Write-Host "Operazione completata!" -ForegroundColor Green
 
 async function exportActionsToFFmpeg() {
     try {
+        if (state.isYoutube) {
+            alert('L\'esportazione video FFmpeg non è disponibile per i video caricati da URL (YouTube).\nQuesta funzione richiede un file video locale.');
+            return;
+        }
         console.log('Inizio exportActionsToFFmpeg');
         if (!state) throw new Error('Stato dell\'applicazione non trovato');
 

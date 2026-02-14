@@ -23,6 +23,7 @@ const state = {
     analysisTeamColors: { A: '#3498db', B: '#f39c12' },   // Colori squadre Analisi
     liveTeamColors: { A: '#3498db', B: '#f39c12' },       // Colori squadre Live
     score: { A: 0, B: 0 }, // Punteggio live (usato solo in Live Tagging)
+    isYoutube: false,
     
     // Live Tagging State
     liveTimer: {
@@ -41,6 +42,107 @@ let previewState = {
     isPlaying: false,
     currentIndex: 0,
     selectedActions: []
+};
+
+// YouTube Integration
+let ytPlayer = null;
+let ytInterval = null;
+
+window.onYouTubeIframeAPIReady = function() {
+    console.log("YouTube API Ready");
+};
+
+function getYoutubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+// Global Player Proxy to handle both HTML5 and YouTube
+const playerProxy = {
+    get element() {
+        return document.getElementById('videoPlayer');
+    },
+    get currentTime() {
+        try {
+            if (state.isYoutube && ytPlayer && ytPlayer.getCurrentTime) {
+                return ytPlayer.getCurrentTime();
+            }
+        } catch (e) {
+            console.error("Errore getCurrentTime YT:", e);
+        }
+        return this.element ? this.element.currentTime : 0;
+    },
+    set currentTime(val) {
+        try {
+            if (state.isYoutube && ytPlayer && ytPlayer.seekTo) {
+                ytPlayer.seekTo(val, true);
+                return;
+            }
+        } catch (e) {
+            console.error("Errore seekTo YT:", e);
+        }
+        if (this.element) this.element.currentTime = val;
+    },
+    seekTo(val) {
+        this.currentTime = val;
+    },
+    get duration() {
+        try {
+            if (state.isYoutube && ytPlayer && ytPlayer.getDuration) {
+                const d = ytPlayer.getDuration();
+                return d > 0 ? d : 0;
+            }
+        } catch (e) {
+            console.error("Errore getDuration YT:", e);
+        }
+        return this.element ? (this.element.duration || 0) : 0;
+    },
+    get paused() {
+        try {
+            if (state.isYoutube && ytPlayer && ytPlayer.getPlayerState) {
+                return ytPlayer.getPlayerState() !== 1;
+            }
+        } catch (e) {
+            console.error("Errore getPlayerState YT:", e);
+        }
+        return this.element ? this.element.paused : true;
+    },
+    play() {
+        try {
+            if (state.isYoutube && ytPlayer && ytPlayer.playVideo) {
+                ytPlayer.playVideo();
+                return;
+            }
+        } catch (e) {
+            console.error("Errore playVideo YT:", e);
+        }
+        if (this.element) this.element.play();
+    },
+    pause() {
+        try {
+            if (state.isYoutube && ytPlayer && ytPlayer.pauseVideo) {
+                ytPlayer.pauseVideo();
+                return;
+            }
+        } catch (e) {
+            console.error("Errore pauseVideo YT:", e);
+        }
+        if (this.element) this.element.pause();
+    },
+    load() {
+        if (this.element && !state.isYoutube) {
+            this.element.load();
+        }
+    },
+    get src() {
+        return state.isYoutube ? (state.currentVideo ? state.currentVideo.url : '') : this.element.src;
+    },
+    set src(val) {
+        if (!state.isYoutube) {
+            this.element.src = val;
+        }
+    }
 };
 
 // Initialize App
@@ -172,11 +274,14 @@ function setupEventListeners() {
     const loadVideoBtn = document.getElementById('loadVideoBtn');
     if (loadVideoBtn) loadVideoBtn.addEventListener('click', loadVideoWithPicker);
     
+    const loadVideoUrlBtn = document.getElementById('loadVideoUrlBtn');
+    if (loadVideoUrlBtn) loadVideoUrlBtn.addEventListener('click', loadVideoFromUrl);
+    
     // Video Player Events
-    const videoPlayer = document.getElementById('videoPlayer');
-    if (videoPlayer) {
-        videoPlayer.addEventListener('timeupdate', updateVideoTime);
-        videoPlayer.addEventListener('loadedmetadata', () => {
+    const rawVideoPlayer = document.getElementById('videoPlayer');
+    if (rawVideoPlayer) {
+        rawVideoPlayer.addEventListener('timeupdate', updateVideoTime);
+        rawVideoPlayer.addEventListener('loadedmetadata', () => {
             updateDuration();
         });
     }
@@ -253,7 +358,7 @@ function setupEventListeners() {
             }
             
             const finalVal = parseFloat(startTimeSlider.value);
-            const videoPlayer = document.getElementById('videoPlayer');
+            const videoPlayer = playerProxy;
             if (videoPlayer && videoPlayer.src) {
                 videoPlayer.currentTime = finalVal;
             }
@@ -276,7 +381,7 @@ function setupEventListeners() {
             }
             
             const finalVal = parseFloat(endTimeSlider.value);
-            const videoPlayer = document.getElementById('videoPlayer');
+            const videoPlayer = playerProxy;
             if (videoPlayer && videoPlayer.src) {
                 videoPlayer.currentTime = finalVal;
             }
@@ -296,7 +401,7 @@ function setupEventListeners() {
             const action = state.activeAction;
             const currentValue = type === 'start' ? action.startTime : action.endTime;
             
-            const videoPlayer = document.getElementById('videoPlayer');
+            const videoPlayer = playerProxy;
             const maxDuration = videoPlayer && videoPlayer.duration ? videoPlayer.duration : 3600;
             
             let newValue = currentValue + delta;
@@ -488,6 +593,11 @@ function switchToTab(tabId) {
 // Video Loading
 async function loadVideoWithPicker() {
     try {
+        state.isYoutube = false;
+        document.getElementById('videoPlayer').style.display = 'block';
+        document.getElementById('youtubePlayer').style.display = 'none';
+        if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+
         // Verifica se il browser supporta la File System Access API
         if ('showOpenFilePicker' in window) {
             const [fileHandle] = await window.showOpenFilePicker({
@@ -504,7 +614,13 @@ async function loadVideoWithPicker() {
             const file = await fileHandle.getFile();
             
             const videoPlayer = document.getElementById('videoPlayer');
+            const youtubeContainer = document.getElementById('youtubePlayer');
             const url = URL.createObjectURL(file);
+            
+            state.isYoutube = false;
+            videoPlayer.style.display = 'block';
+            youtubeContainer.style.display = 'none';
+            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
             
             videoPlayer.src = url;
             state.currentVideo = {
@@ -532,6 +648,114 @@ async function loadVideoWithPicker() {
     }
 }
 
+async function loadVideoFromUrl() {
+    const url = prompt("Inserisci l'URL del video (es. https://www.youtube.com/watch?v=.... o link diretto .mp4):");
+    if (!url) return;
+
+    const ytId = getYoutubeId(url);
+    const videoPlayer = document.getElementById('videoPlayer');
+    const youtubeContainer = document.getElementById('youtubePlayer');
+
+    if (ytId) {
+        if (typeof YT === 'undefined' || !YT.Player) {
+            alert("L'API di YouTube si sta ancora caricando. Riprova tra qualche istante.");
+            return;
+        }
+        
+        state.isYoutube = true;
+        videoPlayer.style.display = 'none';
+        youtubeContainer.style.display = 'block';
+        videoPlayer.pause();
+        
+        // Forza sempre la reinizializzazione se siamo su protocollo file per evitare conflitti di origin/id
+        if (window.location.protocol === 'file:' || !ytPlayer || !ytPlayer.loadVideoById) {
+            initYoutubePlayer(ytId);
+        } else {
+            try {
+                ytPlayer.loadVideoById(ytId);
+            } catch (e) {
+                initYoutubePlayer(ytId);
+            }
+        }
+        state.currentVideo = { name: "YouTube Video", url: url };
+        showNotification('✅ Video YouTube caricato!', 'success');
+    } else {
+        state.isYoutube = false;
+        videoPlayer.style.display = 'block';
+        youtubeContainer.style.display = 'none';
+        if (ytPlayer && ytPlayer.pauseVideo) try { ytPlayer.pauseVideo(); } catch(e) {}
+        
+        videoPlayer.src = url;
+        state.currentVideo = { name: "Video URL", url: url };
+        videoPlayer.load();
+        showNotification('✅ Video caricato da URL!', 'success');
+    }
+}
+
+function initYoutubePlayer(videoId) {
+    console.log("Inizializzazione Player YouTube (IFrame manuale) per ID:", videoId);
+    
+    const container = document.getElementById('youtubePlayer');
+    if (!container) return;
+
+    // Reset del contenitore con un iframe pre-configurato
+    // Questo approccio spesso bypassa l'errore 153 su protocollo file://
+    const origin = window.location.origin === 'null' ? '*' : window.location.origin;
+    
+    container.innerHTML = `
+        <iframe id="yt-player-frame" 
+                width="100%" 
+                height="100%" 
+                src="https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(origin)}&modestbranding=1&rel=0" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+        </iframe>`;
+    container.style.display = 'block';
+
+    try {
+        // Agganciamo l'API al frame esistente
+        ytPlayer = new YT.Player('yt-player-frame', {
+            events: {
+                'onReady': (event) => {
+                    console.log("YouTube Player Pronto");
+                    setTimeout(() => {
+                        updateDuration();
+                        startYoutubeInterval();
+                    }, 500);
+                },
+                'onStateChange': (event) => {
+                    if (event.data === YT.PlayerState.PLAYING) {
+                        startYoutubeInterval();
+                    } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                        stopYoutubeInterval();
+                        updateVideoTime();
+                    }
+                },
+                'onError': (event) => {
+                    console.error("Errore YouTube:", event.data);
+                    if (event.data === 153) {
+                        showNotification("YouTube blocca l'accesso API locale. Prova a usare un server locale o un link video diretto.", "error");
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.error("Errore aggancio API YT:", e);
+    }
+}
+
+function startYoutubeInterval() {
+    if (ytInterval) clearInterval(ytInterval);
+    ytInterval = setInterval(() => {
+        updateVideoTime();
+    }, 500);
+}
+
+function stopYoutubeInterval() {
+    if (ytInterval) clearInterval(ytInterval);
+}
+
 // Time Formatting
 function formatTime(seconds) {
     if (isNaN(seconds)) return '00:00:00';
@@ -544,7 +768,7 @@ function formatTime(seconds) {
 }
 
 function updateVideoTime() {
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     document.getElementById('currentTime').textContent = formatTime(videoPlayer.currentTime);
 
     // Sequence playback logic
@@ -557,7 +781,7 @@ function updateVideoTime() {
 }
 
 function updateDuration() {
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     document.getElementById('duration').textContent = formatTime(videoPlayer.duration);
 }
 
@@ -832,7 +1056,7 @@ function updateTagOffset(tagId, type, value) {
 }
 
 function createActionFromTag(tag) {
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     if (!videoPlayer.src) {
         alert('Carica prima un video');
         return;
@@ -876,7 +1100,7 @@ function deleteTag(tagId) {
 
 // Action Marking
 function markStart() {
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     if (!videoPlayer.src) {
         alert('Carica prima un video');
         return;
@@ -892,7 +1116,7 @@ function markStart() {
 }
 
 function markEnd() {
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     if (!videoPlayer.src) {
         alert('Carica prima un video');
         return;
@@ -1831,7 +2055,7 @@ function updateMainSliders() {
         return;
     }
     
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     const maxDuration = videoPlayer && videoPlayer.duration ? videoPlayer.duration : 3600;
     const rangeBuffer = 5; // 5 secondi di buffer intorno all'azione
     
@@ -1936,29 +2160,59 @@ function updateImageDuration(actionId, duration) {
 
 window.updateImageDuration = updateImageDuration;
 
+let activeActionInterval = null;
+let activeStopHandler = null;
+
 function playAction(actionId) {
     if (previewState.isPlaying) stopPreview();
     
     const action = state.analysisActions.find(a => a.id === actionId);
     if (!action) return;
     
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
+    
+    // Pulisci controlli precedenti per evitare stop prematuri
+    if (activeActionInterval) clearInterval(activeActionInterval);
+    if (activeStopHandler && !state.isYoutube) {
+        document.getElementById('videoPlayer').removeEventListener('timeupdate', activeStopHandler);
+    }
+    
     videoPlayer.currentTime = action.startTime;
     videoPlayer.play();
     
-    // Stop at end time
-    const stopHandler = () => {
-        if (videoPlayer.currentTime >= action.endTime) {
-            videoPlayer.pause();
-            videoPlayer.removeEventListener('timeupdate', stopHandler);
-        }
-    };
-    videoPlayer.addEventListener('timeupdate', stopHandler);
+    // Gestione stop automatico a fine azione
+    if (state.isYoutube) {
+        activeActionInterval = setInterval(() => {
+            if (videoPlayer.currentTime >= action.endTime) {
+                videoPlayer.pause();
+                clearInterval(activeActionInterval);
+                activeActionInterval = null;
+            }
+        }, 100);
+    } else {
+        activeStopHandler = () => {
+            if (videoPlayer.currentTime >= action.endTime) {
+                videoPlayer.pause();
+                document.getElementById('videoPlayer').removeEventListener('timeupdate', activeStopHandler);
+                activeStopHandler = null;
+            }
+        };
+        document.getElementById('videoPlayer').addEventListener('timeupdate', activeStopHandler);
+    }
 }
 
 function stopAction() {
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     videoPlayer.pause();
+    
+    if (activeActionInterval) {
+        clearInterval(activeActionInterval);
+        activeActionInterval = null;
+    }
+    if (activeStopHandler && !state.isYoutube) {
+        document.getElementById('videoPlayer').removeEventListener('timeupdate', activeStopHandler);
+        activeStopHandler = null;
+    }
 }
 
 /**
@@ -2467,7 +2721,7 @@ function playPreviewIndex(index) {
     
     previewState.currentIndex = index;
     const action = previewState.selectedActions[index];
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     
     // Highlight active action in main list if visible
     document.querySelectorAll('.action-item').forEach(item => {
@@ -2507,7 +2761,7 @@ function playNextInPreview() {
 
 function stopPreview() {
     previewState.isPlaying = false;
-    const videoPlayer = document.getElementById('videoPlayer');
+    const videoPlayer = playerProxy;
     if (videoPlayer) videoPlayer.pause();
 
     // UI Updates
