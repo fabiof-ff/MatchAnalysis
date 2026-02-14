@@ -1488,6 +1488,11 @@ function createActionItem(action) {
             <button class="btn-comment-toggle ${action.comment ? 'has-comment' : ''}" title="Commento" onclick="event.stopPropagation(); window.toggleActionComment('${action.id}')" style="background: #3498db; color: white;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             </button>
+            <button class="btn-ai-prompt" title="Genera con AI" 
+                    onclick="event.stopPropagation(); window.openAICommentModal('${action.id}')"
+                    style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; border: none; border-radius: 4px; padding: 2px 4px; cursor: pointer; display: flex !important; align-items: center; justify-content: center; width: 28px; height: 24px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8V5"/><path d="M8 5h8"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9 17h6"/></svg>
+            </button>
             ` : ''}
             <button class="btn-delete" title="Elimina" onclick="event.stopPropagation(); deleteAction('${action.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -1497,7 +1502,8 @@ function createActionItem(action) {
         <div class="action-comment-input" style="display: none;">
             <input type="text" placeholder="Aggiungi un commento..." 
                    value="${action.comment || ''}"
-                   onchange="updateActionComment('${action.id}', this.value)">
+                   onchange="updateActionComment('${action.id}', this.value)"
+                   style="width: 100%; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.85em;">
         </div>
         ` : ''}
     `;
@@ -3155,10 +3161,18 @@ function renderLiveActions() {
                         <span class="live-action-name">${a.tag.name}</span>
                         <span class="live-action-time">${timeStr}</span>
                     </div>
-                    <input type="text" class="live-action-comment" 
-                           placeholder="Aggiungi commento..." 
-                           value="${a.comment || ''}" 
-                           onchange="updateLiveActionComment('${a.id}', this.value)">
+                    <div style="display: flex; gap: 4px; align-items: center; margin-top: 5px;">
+                        <input type="text" class="live-action-comment" 
+                               placeholder="Aggiungi commento..." 
+                               value="${a.comment || ''}" 
+                               onchange="updateLiveActionComment('${a.id}', this.value)"
+                               style="flex: 1; padding: 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.8em;">
+                        <button class="btn-ai-prompt" title="Genera con AI" 
+                                onclick="event.stopPropagation(); window.openAICommentModal('${a.id}')"
+                                style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; border: none; border-radius: 4px; padding: 4px 6px; cursor: pointer; display: flex !important; align-items: center; justify-content: center; height: 26px; width: 30px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8V5"/><path d="M8 5h8"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9 17h6"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <button class="live-action-delete" onclick="deleteActionFromLive('${a.id}')" title="Elimina">×</button>
             </div>
@@ -3269,6 +3283,105 @@ function updateLivePhaseColor(phase, color) {
     document.querySelectorAll(`.live-phase-color[data-phase="${phase}"]`).forEach(input => {
         input.value = color;
     });
+}
+
+// ==========================================
+// AI Comment Logic
+// ==========================================
+// ==========================================
+// AI Comment Logic (Gemini API Integration)
+// ==========================================
+let currentAIActionId = null;
+const GEMINI_API_KEY = "AIzaSyAxRGGSexuFj0NV2j_qeOqKrrTsWbxDI6c";
+
+window.openAICommentModal = function(actionId) {
+    currentAIActionId = actionId;
+    const modal = document.getElementById('aiCommentModal');
+    const input = document.getElementById('aiInputDescription');
+    if (modal) {
+        modal.style.display = 'block';
+        input.value = '';
+        input.focus();
+    }
+};
+
+window.closeAICommentModal = function() {
+    const modal = document.getElementById('aiCommentModal');
+    if (modal) modal.style.display = 'none';
+    currentAIActionId = null;
+};
+
+window.processAIComment = async function() {
+    const descriptionInput = document.getElementById('aiInputDescription');
+    const description = descriptionInput ? descriptionInput.value.trim() : "";
+    
+    if (!description) {
+        alert("Per favore, inserisci una descrizione dell'azione.");
+        return;
+    }
+
+    const generateBtn = document.getElementById('generateAIBtn');
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Analisi in corso...';
+    }
+
+    try {
+        const synthesis = await callGeminiAPI(description);
+        
+        if (currentAIActionId) {
+            updateActionComment(currentAIActionId, synthesis);
+            // Forza il rendering per mostrare il nuovo commento
+            renderActions();
+            // Se siamo in tab live, aggiorna anche quella lista
+            if (document.getElementById('live-tab').classList.contains('active')) {
+                renderLiveActions();
+            }
+        }
+        
+        window.closeAICommentModal();
+        showNotification('✨ Sintesi tecnica generata da Gemini!', 'success');
+    } catch (error) {
+        console.error("Errore API Gemini dettagliato:", error);
+        alert(`Errore AI: ${error.message}\n\nAssicurati che la chiave API sia corretta e che il tuo browser permetta la connessione a Google.`);
+    } finally {
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = 'Genera Sintesi';
+        }
+    }
+};
+
+async function callGeminiAPI(text) {
+    const prompt = `Sei un esperto Match Analyst di calcio professionale. 
+Analizza la seguente descrizione di un'azione di gioco e scrivi una sintesi tecnica focalizzata sulla tattica.
+REGOLE:
+1. Lunghezza: massimo 15 parole.
+2. Lingua: Italiano.
+3. Stile: Gergo tecnico da analisi video (es. terzo uomo, scaglionamento, transizione, densità zona palla, ampiezza, ecc.).
+4. Rispondi SOLO con la sintesi, senza "Ecco la sintesi" o virgolette.
+
+Descrizione: "${text}"`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contents: [{
+                parts: [{ text: prompt }]
+            }]
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error ? errorData.error.message : 'Errore API');
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text.trim();
 }
 
 // Fine del file

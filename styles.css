@@ -2055,4 +2055,67 @@ button:active {
     .live-tag-btn { padding: 20px 5px; font-size: 0.85em; }
 }
 
+/* AI Prompt Button Styles */
+.btn-ai-prompt {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad) !important;
+    margin-right: 2px;
+    z-index: 10;
+}
 
+.action-controls-btns .btn-ai-prompt svg {
+    display: block !important;
+    stroke: white !important;
+}
+
+.btn-ai-prompt:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(155, 89, 182, 0.8) !important;
+}
+
+.btn-ai-prompt:active {
+    transform: scale(0.95);
+}
+
+.action-comment-input input:focus {
+    border-color: #9b59b6;
+    outline: none;
+    box-shadow: 0 0 5px rgba(155, 89, 182, 0.2);
+}
+
+/* Modal Enhancements */
+#aiCommentModal .modal-content {
+    animation: modalSlideDown 0.4s ease-out;
+}
+
+@keyframes modalSlideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+#aiInputDescription:focus {
+    border-color: #9b59b6;
+    box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
+}
+
+
+
+.modal-btn-ai:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    filter: brightness(1.1);
+}
+
+.modal-btn-ai:active {
+    transform: translateY(0);
+}

@@ -392,6 +392,24 @@
 
     </div>
 
+    <!-- Modal AI Comment -->
+    <div id="aiCommentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0; color: #2c3e50; font-size: 1.5em;">🪄 Assistente AI - Analisi Clip</h2>
+                <span class="close" onclick="closeAICommentModal()" style="cursor: pointer; font-size: 28px; font-weight: bold; color: #aaa;">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: #7f8c8d;">Inserisci una descrizione dettagliata dell'azione. L'AI genererà una sintesi tecnica di 10-15 parole per i commenti.</p>
+                <textarea id="aiInputDescription" placeholder="Es: Il giocatore riceve palla tra le linee, salta l'uomo e serve l'attaccante in profondità che calcia a rete..." rows="5" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; margin-bottom: 15px; resize: vertical; outline: none; transition: border-color 0.3s;"></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                      <button class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: all 0.3s; background: #95a5a6;" onclick="closeAICommentModal()">Annulla</button>
+                      <button id="generateAIBtn" class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: all 0.3s; background: linear-gradient(135deg, #9b59b6, #8e44ad);" onclick="processAIComment()">Genera Sintesi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
     <script src="export.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
