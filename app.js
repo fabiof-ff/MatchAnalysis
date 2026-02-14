@@ -3293,22 +3293,94 @@ function updateLivePhaseColor(phase, color) {
 // ==========================================
 let currentAIActionId = null;
 const GEMINI_API_KEY = "AIzaSyAxRGGSexuFj0NV2j_qeOqKrrTsWbxDI6c";
+const DAILY_LIMIT = 1500;
 
 window.openAICommentModal = function(actionId) {
     currentAIActionId = actionId;
     const modal = document.getElementById('aiCommentModal');
     const input = document.getElementById('aiInputDescription');
+    const inputSection = document.getElementById('aiInputSection');
+    const resultSection = document.getElementById('aiResultSection');
+    
     if (modal) {
         modal.style.display = 'block';
-        input.value = '';
-        input.focus();
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        if (inputSection) inputSection.style.display = 'block';
+        if (resultSection) resultSection.style.display = 'none';
+        
+        updateAIUsageDisplay();
     }
 };
+
+function updateAIUsageDisplay() {
+    const usage = getAIUsage();
+    const indicator = document.getElementById('aiUsageIndicator');
+    if (indicator) {
+        indicator.textContent = `Utilizzo oggi: ${usage.count} / ${DAILY_LIMIT}`;
+        if (usage.count > DAILY_LIMIT * 0.9) {
+            indicator.style.color = '#e67e22';
+        }
+        if (usage.count >= DAILY_LIMIT) {
+            indicator.style.color = '#e74c3c';
+            indicator.style.fontWeight = 'bold';
+        }
+    }
+}
+
+function getAIUsage() {
+    const today = new Date().toDateString();
+    let usage = JSON.parse(localStorage.getItem('gemini_usage') || '{"date": "", "count": 0}');
+    
+    if (usage.date !== today) {
+        usage = { date: today, count: 0 };
+    }
+    return usage;
+}
+
+function incrementAIUsage() {
+    const usage = getAIUsage();
+    usage.count++;
+    localStorage.setItem('gemini_usage', JSON.stringify(usage));
+    updateAIUsageDisplay();
+}
 
 window.closeAICommentModal = function() {
     const modal = document.getElementById('aiCommentModal');
     if (modal) modal.style.display = 'none';
     currentAIActionId = null;
+};
+
+window.resetAIModal = function() {
+    const inputSection = document.getElementById('aiInputSection');
+    const resultSection = document.getElementById('aiResultSection');
+    const input = document.getElementById('aiInputDescription');
+    
+    if (inputSection) inputSection.style.display = 'block';
+    if (resultSection) resultSection.style.display = 'none';
+    if (input) {
+        input.focus();
+    }
+};
+
+window.confirmAIComment = function() {
+    const resultText = document.getElementById('aiResultText');
+    const synthesis = resultText ? resultText.value.trim() : "";
+    
+    if (currentAIActionId && synthesis) {
+        updateActionComment(currentAIActionId, synthesis);
+        // Forza il rendering per mostrare il nuovo commento
+        renderActions();
+        // Se siamo in tab live, aggiorna anche quella lista
+        if (document.getElementById('live-tab').classList.contains('active')) {
+            renderLiveActions();
+        }
+        
+        window.closeAICommentModal();
+        showNotification('✨ Sintesi tecnica applicata!', 'success');
+    }
 };
 
 window.processAIComment = async function() {
@@ -3329,18 +3401,15 @@ window.processAIComment = async function() {
     try {
         const synthesis = await callGeminiAPI(description);
         
-        if (currentAIActionId) {
-            updateActionComment(currentAIActionId, synthesis);
-            // Forza il rendering per mostrare il nuovo commento
-            renderActions();
-            // Se siamo in tab live, aggiorna anche quella lista
-            if (document.getElementById('live-tab').classList.contains('active')) {
-                renderLiveActions();
-            }
-        }
+        const inputSection = document.getElementById('aiInputSection');
+        const resultSection = document.getElementById('aiResultSection');
+        const resultText = document.getElementById('aiResultText');
         
-        window.closeAICommentModal();
-        showNotification('✨ Sintesi tecnica generata da Gemini!', 'success');
+        if (resultText) resultText.value = synthesis;
+        if (inputSection) inputSection.style.display = 'none';
+        if (resultSection) resultSection.style.display = 'block';
+        
+        showNotification('✨ Sintesi generata!', 'success');
     } catch (error) {
         console.error("Errore API Gemini dettagliato:", error);
         alert(`Errore AI: ${error.message}\n\nAssicurati che la chiave API sia corretta e che il tuo browser permetta la connessione a Google.`);
@@ -3356,7 +3425,7 @@ async function callGeminiAPI(text) {
     const prompt = `Sei un esperto Match Analyst di calcio professionale. 
 Analizza la seguente descrizione di un'azione di gioco e scrivi una sintesi tecnica focalizzata sulla tattica.
 REGOLE:
-1. Lunghezza: massimo 15 parole.
+1. Lunghezza: massimo 12 parole.
 2. Lingua: Italiano.
 3. Stile: Gergo tecnico da analisi video (es. terzo uomo, scaglionamento, transizione, densità zona palla, ampiezza, ecc.).
 4. Rispondi SOLO con la sintesi, senza "Ecco la sintesi" o virgolette.
@@ -3375,11 +3444,16 @@ Descrizione: "${text}"`;
         })
     });
 
+    if (response.status === 429) {
+        throw new Error("Limite di richieste raggiunto (Rate Limit). Attendi un minuto o riprova domani se hai superato i 1500 invii.");
+    }
+
     if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error ? errorData.error.message : 'Errore API');
     }
 
+    incrementAIUsage();
     const data = await response.json();
     return data.candidates[0].content.parts[0].text.trim();
 }

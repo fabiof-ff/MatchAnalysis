@@ -400,11 +400,26 @@
                 <span class="close" onclick="closeAICommentModal()" style="cursor: pointer; font-size: 28px; font-weight: bold; color: #aaa;">&times;</span>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom: 15px; color: #7f8c8d;">Inserisci una descrizione dettagliata dell'azione. L'AI genererà una sintesi tecnica di 10-15 parole per i commenti.</p>
-                <textarea id="aiInputDescription" placeholder="Es: Il giocatore riceve palla tra le linee, salta l'uomo e serve l'attaccante in profondità che calcia a rete..." rows="5" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; margin-bottom: 15px; resize: vertical; outline: none; transition: border-color 0.3s;"></textarea>
-                <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                      <button class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: all 0.3s; background: #95a5a6;" onclick="closeAICommentModal()">Annulla</button>
-                      <button id="generateAIBtn" class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: all 0.3s; background: linear-gradient(135deg, #9b59b6, #8e44ad);" onclick="processAIComment()">Genera Sintesi</button>
+                <div id="aiInputSection">
+                    <p style="margin-bottom: 15px; color: #7f8c8d;">Inserisci una descrizione dettagliata dell'azione. L'AI genererà una sintesi tecnica di massimo 12 parole per i commenti.</p>
+                    <textarea id="aiInputDescription" placeholder="Es: Il giocatore riceve palla tra le linee, salta l'uomo e serve l'attaccante in profondità che calcia a rete..." rows="5" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; margin-bottom: 15px; resize: vertical; outline: none; transition: border-color 0.3s;"></textarea>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span id="aiUsageIndicator" style="font-size: 0.8em; color: #95a5a6;">Utilizzo oggi: 0 / 1500</span>
+                        <div style="display: flex; gap: 10px;">
+                              <button class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: all 0.3s; background: #95a5a6;" onclick="closeAICommentModal()">Annulla</button>
+                              <button id="generateAIBtn" class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; transition: all 0.3s; background: linear-gradient(135deg, #9b59b6, #8e44ad);" onclick="processAIComment()">Genera Sintesi</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="aiResultSection" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <p style="font-weight: bold; color: #2c3e50; margin-bottom: 10px;">Sintesi Proposta dall'AI:</p>
+                    <textarea id="aiResultText" rows="3" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #9b59b6; font-family: inherit; margin-bottom: 15px; resize: vertical; outline: none; background: #fdf7ff; font-style: italic;"></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; background: #95a5a6;" onclick="resetAIModal()">Riprova</button>
+                        <button id="applyAIResultBtn" class="modal-btn-ai" style="padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; background: linear-gradient(135deg, #27ae60, #2ecc71);" onclick="confirmAIComment()">Conferma e Applica</button>
+                    </div>
                 </div>
             </div>
         </div>
