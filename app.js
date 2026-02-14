@@ -3292,12 +3292,25 @@ function updateLivePhaseColor(phase, color) {
 // AI Comment Logic (Gemini API Integration)
 // ==========================================
 let currentAIActionId = null;
-const GEMINI_API_KEY = "AIzaSyAxRGGSexuFj0NV2j_qeOqKrrTsWbxDI6c";
+let GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || "";
 const DAILY_LIMIT = 1500;
 
 window.openAICommentModal = function(actionId) {
     currentAIActionId = actionId;
     const modal = document.getElementById('aiCommentModal');
+    
+    // Verifica se la chiave è presente
+    if (!GEMINI_API_KEY) {
+        const key = prompt("Inserisci la tua Google Gemini API Key per usare l'assistente (verrà salvata solo in questo browser):");
+        if (key) {
+            GEMINI_API_KEY = key;
+            localStorage.setItem('gemini_api_key', key);
+        } else {
+            alert("L'assistente AI richiede una API Key valida per funzionare.");
+            return;
+        }
+    }
+
     const input = document.getElementById('aiInputDescription');
     const inputSection = document.getElementById('aiInputSection');
     const resultSection = document.getElementById('aiResultSection');
@@ -3382,6 +3395,52 @@ window.confirmAIComment = function() {
         showNotification('✨ Sintesi tecnica applicata!', 'success');
     }
 };
+
+// --- Gestione API Key ---
+window.saveApiKey = function() {
+    const input = document.getElementById('geminiApiKeyInput');
+    const status = document.getElementById('apiKeyStatus');
+    const key = input.value.trim();
+    
+    if (key) {
+        GEMINI_API_KEY = key;
+        localStorage.setItem('gemini_api_key', key);
+        if (status) {
+            status.textContent = "✅ Chiave salvata correttamente!";
+            status.style.color = "#27ae60";
+        }
+        showNotification("API Key aggiornata", "success");
+    } else {
+        alert("Inserisci una chiave valida.");
+    }
+};
+
+window.clearApiKey = function() {
+    if (confirm("Sei sicuro di voler rimuovere la API Key? L'assistente AI smetterà di funzionar.")) {
+        localStorage.removeItem('gemini_api_key');
+        GEMINI_API_KEY = "";
+        const input = document.getElementById('geminiApiKeyInput');
+        const status = document.getElementById('apiKeyStatus');
+        if (input) input.value = "";
+        if (status) {
+            status.textContent = "❌ Chiave rimossa.";
+            status.style.color = "#e74c3c";
+        }
+    }
+};
+
+// Inizializzazione campo API Key nelle impostazioni
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('geminiApiKeyInput');
+    const status = document.getElementById('apiKeyStatus');
+    if (input && GEMINI_API_KEY) {
+        input.value = GEMINI_API_KEY;
+        if (status) {
+            status.textContent = "✅ Chiave presente nel sistema";
+            status.style.color = "#27ae60";
+        }
+    }
+});
 
 window.processAIComment = async function() {
     const descriptionInput = document.getElementById('aiInputDescription');

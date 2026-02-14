@@ -18,6 +18,28 @@
                 <button class="tab-btn active" data-tab="analysis">📊 Analisi Video</button>
                 <button class="tab-btn" data-tab="live">🔴 Live Tagging</button>
                 <button class="tab-btn" data-tab="tools">🛠️ Strumenti Video</button>
+                <button class="tab-btn" data-tab="settings" title="Impostazioni"><i class="fas fa-cog"></i></button>
+            </div>
+        </div>
+
+        <!-- Tab: Impostazioni -->
+        <div class="tab-content" id="settings-tab" style="display: none; padding: 20px;">
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
+                <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">⚙️ Configurazione</h2>
+                
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #34495e;">Google Gemini API Key</label>
+                    <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 12px;">Necessaria per usare l'Assistente AI. La chiave viene salvata solo localmente in questo browser.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none;">
+                        <button onclick="saveApiKey()" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">Salva</button>
+                    </div>
+                    <p id="apiKeyStatus" style="font-size: 0.8em; margin-top: 8px; font-weight: bold;"></p>
+                </div>
+
+                <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                    <button onclick="clearApiKey()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">Rimuovi Chiave Salvata</button>
+                </div>
             </div>
         </div>
 
