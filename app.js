@@ -591,36 +591,47 @@ function switchToTab(tabId) {
 
 
 // Video Loading
-async function loadVideoWithPicker() {
-    try {
-        state.isYoutube = false;
-        document.getElementById('videoPlayer').style.display = 'block';
-        document.getElementById('youtubePlayer').style.display = 'none';
-        if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+function loadVideoWithPicker() {
+    state.isYoutube = false;
+    const videoPlayer = document.getElementById('videoPlayer');
+    const youtubeContainer = document.getElementById('youtubePlayer');
+    
+    if (videoPlayer) videoPlayer.style.display = 'block';
+    if (youtubeContainer) youtubeContainer.style.display = 'none';
+    if (ytPlayer && ytPlayer.pauseVideo) try { ytPlayer.pauseVideo(); } catch(e) {}
 
-        // Verifica se il browser supporta la File System Access API
-        if ('showOpenFilePicker' in window) {
-            const [fileHandle] = await window.showOpenFilePicker({
-                types: [{
-                    description: 'Video Files',
-                    accept: {
-                        'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.webm']
-                    }
-                }],
-                multiple: false
-            });
-            
-            const file = await fileHandle.getFile();
-            handleVideoFile(file, fileHandle);
+    // Verifica se il browser supporta la File System Access API
+    if ('showOpenFilePicker' in window) {
+        loadVideoModern();
+    } else {
+        // Fallback immediato per iOS/Safari e Chrome su iOS
+        // Eseguiamo il .click() in modo sincrono per evitare blocchi di sicurezza
+        const fallbackInput = document.getElementById('videoInputFallback');
+        if (fallbackInput) {
+            fallbackInput.click();
         } else {
-            // Fallback per iOS/Safari e altri browser che non supportano showOpenFilePicker
-            document.getElementById('videoInputFallback').click();
+            console.error('Fallback input non trovato');
         }
+    }
+}
+
+async function loadVideoModern() {
+    try {
+        const [fileHandle] = await window.showOpenFilePicker({
+            types: [{
+                description: 'Video Files',
+                accept: {
+                    'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.webm']
+                }
+            }],
+            multiple: false
+        });
+        
+        const file = await fileHandle.getFile();
+        handleVideoFile(file, fileHandle);
     } catch (err) {
-        if (err.name === 'AbortError') {
-            console.log('Selezione video annullata');
-        } else {
-            console.error('Errore caricamento video:', err);
+        if (err.name !== 'AbortError') {
+            console.error('Errore caricamento video (modern):', err);
             alert('Errore nel caricamento del video.');
         }
     }
