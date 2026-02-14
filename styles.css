@@ -124,15 +124,19 @@ header h1 {
 }
 
 .tab-btn {
-    padding: 5px 12px;
+    padding: 8px 12px;
     background: #7f8c8d;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: 1.1em;
     font-weight: 600;
     color: #ffffff;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
 }
 
 .tab-btn:hover {
